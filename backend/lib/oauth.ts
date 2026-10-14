@@ -34,6 +34,7 @@ export interface OAuthTokenDoc {
   tokenHash: string;
   clientId: string;
   userId: ObjectId;
+  createdAt?: Date; // missing on tokens issued before this field was added
   expiresAt: Date;
 }
 
@@ -189,9 +190,55 @@ export async function issueAccessToken(clientId: string, userId: string): Promis
     tokenHash: sha256(token),
     clientId,
     userId: new ObjectId(userId),
+    createdAt: new Date(),
     expiresAt: new Date(Date.now() + ACCESS_TOKEN_TTL_SECONDS * 1000),
   });
   return token;
+}
+
+export interface Connection {
+  clientId: string;
+  clientName: string;
+  connectedAt: string;
+  expiresAt: string;
+}
+
+/** Apps the user has connected with OAuth and whose access has not expired, newest first. */
+export async function listConnections(userId: string): Promise<Connection[]> {
+  const { clients, tokens } = await collections();
+  const docs = await tokens
+    .find({ userId: new ObjectId(userId), expiresAt: { $gt: new Date() } })
+    .toArray();
+
+  // One app can have several tokens (for example after reconnecting), so keep one row per app.
+  const byClient = new Map<string, { connectedAt: Date; expiresAt: Date }>();
+  for (const doc of docs) {
+    const connectedAt = doc.createdAt ?? doc.expiresAt;
+    const current = byClient.get(doc.clientId);
+    if (!current || connectedAt > current.connectedAt) {
+      byClient.set(doc.clientId, { connectedAt, expiresAt: doc.expiresAt });
+    }
+  }
+
+  const names = await clients
+    .find({ clientId: { $in: [...byClient.keys()] } })
+    .toArray();
+  const nameOf = new Map(names.map((c) => [c.clientId, c.clientName]));
+
+  return [...byClient.entries()]
+    .map(([clientId, { connectedAt, expiresAt }]) => ({
+      clientId,
+      clientName: nameOf.get(clientId) ?? "Unknown app",
+      connectedAt: connectedAt.toISOString(),
+      expiresAt: expiresAt.toISOString(),
+    }))
+    .sort((a, b) => b.connectedAt.localeCompare(a.connectedAt));
+}
+
+/** Disconnects one app for this user. Other apps and the personal MCP token are unaffected. */
+export async function revokeConnection(userId: string, clientId: string): Promise<boolean> {
+  const res = await (await collections()).tokens.deleteMany({ userId: new ObjectId(userId), clientId });
+  return res.deletedCount > 0;
 }
 
 /** Disconnects every app that was granted access as this user. */

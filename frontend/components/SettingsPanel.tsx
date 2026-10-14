@@ -3,15 +3,39 @@
 import { useEffect, useState } from "react";
 import Nav from "./Nav";
 
+interface Connection {
+  clientId: string;
+  clientName: string;
+  connectedAt: string;
+  expiresAt: string;
+}
+
+function fmtDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { dateStyle: "medium" });
+}
+
 export default function SettingsPanel() {
   const [origin, setOrigin] = useState("");
   const [hasToken, setHasToken] = useState<boolean | null>(null);
   const [token, setToken] = useState("");
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
+  const [connections, setConnections] = useState<Connection[] | null>(null);
+  const [connectionError, setConnectionError] = useState("");
+
+  async function loadConnections() {
+    const res = await fetch("/api/oauth/connections", { cache: "no-store" });
+    if (res.status === 401) {
+      window.location.href = "/login";
+      return;
+    }
+    const data = await res.json();
+    setConnections(data.connections ?? []);
+  }
 
   useEffect(() => {
     setOrigin(window.location.origin);
+    loadConnections().catch(() => setConnectionError("Could not load connected apps"));
     fetch("/api/mcp-token", { cache: "no-store" })
       .then((r) => {
         if (r.status === 401) {
@@ -46,6 +70,19 @@ export default function SettingsPanel() {
   async function copy() {
     await navigator.clipboard.writeText(token);
     setCopied(true);
+  }
+
+  async function disconnect(connection: Connection) {
+    if (!window.confirm(`Disconnect ${connection.clientName}? It will lose access to your tasks.`)) return;
+    setConnectionError("");
+    const res = await fetch(`/api/oauth/connections/${encodeURIComponent(connection.clientId)}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      setConnectionError("Could not disconnect. Try again.");
+      return;
+    }
+    await loadConnections();
   }
 
   const mcpUrl = `${origin}/api/mcp`;
@@ -97,6 +134,37 @@ export default function SettingsPanel() {
             </>
           )}
           {error && <p className="error">{error}</p>}
+        </section>
+
+        <section className="panel">
+          <h2>Connected apps</h2>
+          <p className="muted">
+            Apps connected to your account with sign-in, such as claude.ai. Each one can use your tasks until
+            you disconnect it or its access expires.
+          </p>
+          {connections === null && !connectionError && <p className="muted">Loading…</p>}
+          {connections?.length === 0 && <p className="muted">No apps connected.</p>}
+          {connections && connections.length > 0 && (
+            <ul className="list">
+              {connections.map((c) => (
+                <li key={c.clientId} className="item">
+                  <div className="body">
+                    <span className="title">{c.clientName}</span>
+                    <div className="meta">
+                      <span>Connected {fmtDate(c.connectedAt)}</span>
+                      <span>· Access expires {fmtDate(c.expiresAt)}</span>
+                    </div>
+                  </div>
+                  <div className="actions">
+                    <button className="ghost danger" onClick={() => disconnect(c)}>
+                      Disconnect
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          {connectionError && <p className="error">{connectionError}</p>}
         </section>
       </main>
     </>

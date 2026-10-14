@@ -72,7 +72,8 @@ Use the **frontend** URL to open the app and for MCP (below). The backend URL wo
 2. URL: `https://YOUR-FRONTEND.vercel.app/api/mcp`
 3. Claude opens a sign-in page on your app. Log in if asked, then click **Allow**.
 
-Access lasts 90 days. Clicking **Revoke token** in Settings disconnects claude.ai too.
+Access lasts 90 days. The **Connected apps** section in Settings lists every app connected with sign-in
+and lets you **Disconnect** one. Clicking **Revoke token** disconnects all of them, plus any client using the personal token.
 
 ## Connect Claude Code or Claude Desktop via MCP
 
