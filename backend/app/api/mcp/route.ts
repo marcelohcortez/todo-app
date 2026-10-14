@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleMessage, userIdForMcpToken } from "@/lib/mcp";
+import { publicBaseUrl } from "@/lib/oauth";
+
+export const dynamic = "force-dynamic";
 
 // MCP endpoint (Streamable HTTP transport, JSON responses).
-// Clients authenticate with: Authorization: Bearer <token from the Settings page>
+// Clients authenticate with: Authorization: Bearer <token from the Settings page or an OAuth access token>
 
 export async function POST(req: NextRequest) {
   const header = req.headers.get("authorization") ?? "";
@@ -10,9 +13,14 @@ export async function POST(req: NextRequest) {
   const userId = token ? await userIdForMcpToken(token) : null;
 
   if (!userId) {
+    // resource_metadata tells OAuth clients (claude.ai) where to start the sign-in flow.
+    const metadata = `${publicBaseUrl(req)}/.well-known/oauth-protected-resource`;
     return NextResponse.json(
       { error: "Unauthorized" },
-      { status: 401, headers: { "WWW-Authenticate": 'Bearer realm="todo-app"' } }
+      {
+        status: 401,
+        headers: { "WWW-Authenticate": `Bearer realm="todo-app", resource_metadata="${metadata}"` },
+      }
     );
   }
 

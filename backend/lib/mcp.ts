@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "crypto";
 import { usersCollection } from "./users";
+import { userIdForAccessToken } from "./oauth";
 import {
   cleanTitle,
   createTask,
@@ -22,9 +23,11 @@ export function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
+// Accepts a token from the Settings page (Claude Code, Claude Desktop) or an OAuth access token (claude.ai).
 export async function userIdForMcpToken(token: string): Promise<string | null> {
   const user = await (await usersCollection()).findOne({ mcpTokenHash: hashToken(token) });
-  return user ? user._id.toHexString() : null;
+  if (user) return user._id.toHexString();
+  return userIdForAccessToken(token);
 }
 
 // ---------- tool definitions ----------

@@ -49,7 +49,8 @@ Create two Vercel projects from the same GitHub repo.
 **Backend project**
 
 1. Root directory: `backend`.
-2. Environment variables: `MONGODB_URI`, `MONGODB_DB`, `AUTH_SECRET`, `ALLOW_SIGNUP`.
+2. Environment variables: `MONGODB_URI`, `MONGODB_DB`, `AUTH_SECRET`, `ALLOW_SIGNUP`, and `PUBLIC_URL`
+   = the **frontend** URL (no trailing slash). `PUBLIC_URL` is used for the OAuth sign-in for claude.ai.
 3. Deploy. Note its URL, for example `https://todo-api.vercel.app`.
 
 **Frontend project**
@@ -63,7 +64,15 @@ In MongoDB Atlas, allow network access from Vercel (or `0.0.0.0/0`).
 
 Use the **frontend** URL to open the app and for MCP (below). The backend URL works for the API directly.
 
-## Connect an AI via MCP
+## Connect claude.ai (web)
+
+1. In claude.ai, go to **Settings → Connectors → Add custom connector**.
+2. URL: `https://YOUR-FRONTEND.vercel.app/api/mcp`
+3. Claude opens a sign-in page on your app. Log in if asked, then click **Allow**.
+
+Access lasts 90 days. Clicking **Revoke token** in Settings disconnects claude.ai too.
+
+## Connect Claude Code or Claude Desktop via MCP
 
 1. Log in, go to **Settings**, click **Create token**, and copy it. It is shown once.
 2. Point your MCP client at the endpoint with a Bearer header:

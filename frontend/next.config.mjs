@@ -6,14 +6,14 @@ if (!backendUrl) {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // The browser only talks to this app. /api/* is forwarded to the backend project,
-  // so the session cookie stays first-party: no CORS setup and no cross-site cookie rules.
+  // The browser only talks to this app. /api/* and the OAuth discovery documents are forwarded
+  // to the backend project, so the session cookie stays first-party: no CORS setup and no
+  // cross-site cookie rules.
   async rewrites() {
+    const target = backendUrl.replace(/\/$/, "");
     return [
-      {
-        source: "/api/:path*",
-        destination: `${backendUrl.replace(/\/$/, "")}/api/:path*`,
-      },
+      { source: "/api/:path*", destination: `${target}/api/:path*` },
+      { source: "/.well-known/:path*", destination: `${target}/.well-known/:path*` },
     ];
   },
 };

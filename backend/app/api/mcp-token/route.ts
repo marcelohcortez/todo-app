@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { getCurrentUserId, unauthorized } from "@/lib/auth";
 import { usersCollection } from "@/lib/users";
 import { generateMcpToken, hashToken } from "@/lib/mcp";
+import { revokeAccessTokensForUser } from "@/lib/oauth";
 
 // Whether this user currently has an MCP token.
 export async function GET() {
@@ -26,7 +27,7 @@ export async function POST() {
   return NextResponse.json({ token });
 }
 
-// Revokes the MCP token.
+// Revokes the MCP token and disconnects apps that were connected with OAuth (e.g. claude.ai).
 export async function DELETE() {
   const userId = await getCurrentUserId();
   if (!userId) return unauthorized();
@@ -35,5 +36,6 @@ export async function DELETE() {
     { _id: new ObjectId(userId) },
     { $unset: { mcpTokenHash: "" } }
   );
+  await revokeAccessTokensForUser(userId);
   return NextResponse.json({ ok: true });
 }

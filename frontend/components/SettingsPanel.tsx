@@ -37,7 +37,7 @@ export default function SettingsPanel() {
   }
 
   async function revoke() {
-    if (!window.confirm("Revoke the MCP token? Any AI client using it will lose access.")) return;
+    if (!window.confirm("Revoke the MCP token? Any AI client using it, including claude.ai, will lose access.")) return;
     await fetch("/api/mcp-token", { method: "DELETE" });
     setToken("");
     setHasToken(false);

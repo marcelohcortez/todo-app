@@ -28,7 +28,10 @@ export default function LoginForm() {
       setError(data.error ?? "Something went wrong");
       return;
     }
-    router.replace("/");
+    // Return to where the user was sent from (e.g. the OAuth consent page). Only same-site paths.
+    const next = new URLSearchParams(window.location.search).get("next") ?? "";
+    const target = next.startsWith("/") && !next.startsWith("//") ? next : "/";
+    router.replace(target);
     router.refresh();
   }
 
