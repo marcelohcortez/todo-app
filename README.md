@@ -66,6 +66,16 @@ In MongoDB Atlas, allow network access from Vercel (or `0.0.0.0/0`).
 
 Use the **frontend** URL to open the app and for MCP (below). The backend URL works for the API directly.
 
+## Install on your phone
+
+The web app is a PWA, so it installs without an app store. Open your frontend URL in the phone's browser:
+
+- **Android (Chrome):** menu (⋮) → **Install app** (or **Add to Home screen**).
+- **iPhone (Safari):** Share → **Add to Home Screen**.
+
+It opens full screen with its own icon. The web version is the same app, and nothing is cached: tasks and
+sign-in always come from the server.
+
 ## Connect claude.ai (web)
 
 1. In claude.ai, go to **Settings → Connectors → Add custom connector**.
