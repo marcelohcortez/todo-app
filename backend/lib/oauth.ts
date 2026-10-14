@@ -99,14 +99,31 @@ export function authServerMetadata(base: string) {
 
 // ---------- clients (RFC 7591) ----------
 
-/** Redirect URIs must be HTTPS, or plain HTTP on localhost for local tools. No fragments. */
+// Hosts an app may redirect the approval code to. Anything else is refused, so an unknown app
+// cannot receive a code even if the user clicks Allow. Add other AIs' callback hosts with
+// ALLOWED_REDIRECT_HOSTS (comma-separated, e.g. "chatgpt.com,example.ai").
+const DEFAULT_REDIRECT_HOSTS = ["claude.ai", "claude.com"];
+
+function allowedRedirectHosts(): string[] {
+  const extra = (process.env.ALLOWED_REDIRECT_HOSTS ?? "")
+    .split(",")
+    .map((host) => host.trim().toLowerCase())
+    .filter(Boolean);
+  return [...DEFAULT_REDIRECT_HOSTS, ...extra];
+}
+
+/**
+ * Redirect URIs must be HTTPS on an allowed host, with no fragment.
+ * Plain HTTP is allowed only for localhost, which only the user's own machine can reach.
+ */
 export function isAllowedRedirectUri(value: unknown): value is string {
   if (typeof value !== "string") return false;
   try {
     const url = new URL(value);
     if (url.hash) return false;
-    if (url.protocol === "https:") return true;
-    return url.protocol === "http:" && (url.hostname === "localhost" || url.hostname === "127.0.0.1");
+    const host = url.hostname.toLowerCase();
+    if (host === "localhost" || host === "127.0.0.1") return url.protocol === "http:" || url.protocol === "https:";
+    return url.protocol === "https:" && allowedRedirectHosts().includes(host);
   } catch {
     return false;
   }
@@ -125,7 +142,7 @@ export async function registerClient(clientName: string, redirectUris: string[])
 
 /** Returns the client only if the redirect URI is one it registered (exact match). */
 export async function findClient(clientId: string, redirectUri: string): Promise<OAuthClientDoc | null> {
-  if (!clientId || !redirectUri) return null;
+  if (!clientId || !redirectUri || !isAllowedRedirectUri(redirectUri)) return null;
   const client = await (await collections()).clients.findOne({ clientId });
   if (!client || !client.redirectUris.includes(redirectUri)) return null;
   return client;

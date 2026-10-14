@@ -4,6 +4,14 @@ import { useEffect, useState } from "react";
 
 type Params = Record<string, string>;
 
+function redirectHost(redirectUri: string | undefined): string {
+  try {
+    return new URL(redirectUri ?? "").host;
+  } catch {
+    return "an unknown address";
+  }
+}
+
 // Shown when an app (such as claude.ai) asks to connect to the user's tasks.
 export default function AuthorizeConsent() {
   const [params, setParams] = useState<Params | null>(null);
@@ -62,6 +70,10 @@ export default function AuthorizeConsent() {
           <p>
             <strong>{clientName}</strong> wants to view and change your tasks: list, create, edit, complete and
             delete them.
+          </p>
+          <p>
+            Approving sends access to <strong>{redirectHost(params?.redirect_uri)}</strong>. Only approve if you
+            started this connection yourself.
           </p>
           <div className="row">
             <button onClick={() => decide("allow")} disabled={busy}>

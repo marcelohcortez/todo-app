@@ -51,6 +51,8 @@ Create two Vercel projects from the same GitHub repo.
 1. Root directory: `backend`.
 2. Environment variables: `MONGODB_URI`, `MONGODB_DB`, `AUTH_SECRET`, `ALLOW_SIGNUP`, and `PUBLIC_URL`
    = the **frontend** URL (no trailing slash). `PUBLIC_URL` is used for the OAuth sign-in for claude.ai.
+   Optional: `ALLOWED_REDIRECT_HOSTS` = extra AI callback hosts that may connect, comma-separated
+   (for example `chatgpt.com`). `claude.ai` and `claude.com` are always allowed.
 3. Deploy. Note its URL, for example `https://todo-api.vercel.app`.
 
 **Frontend project**
