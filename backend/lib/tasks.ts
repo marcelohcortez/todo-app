@@ -1,0 +1,110 @@
+import { ObjectId } from "mongodb";
+import type { Collection, Filter } from "mongodb";
+import { getDb } from "./mongodb";
+import { PRIORITIES, PRIORITY_RANK } from "./types";
+import type { Priority, Task, TaskDoc } from "./types";
+
+export type StatusFilter = "active" | "done" | "all";
+
+export interface TaskPatch {
+  title?: string;
+  priority?: Priority;
+  completed?: boolean;
+}
+
+export function isPriority(value: unknown): value is Priority {
+  return typeof value === "string" && (PRIORITIES as readonly string[]).includes(value);
+}
+
+export function isStatusFilter(value: unknown): value is StatusFilter {
+  return value === "active" || value === "done" || value === "all";
+}
+
+/** Returns the trimmed title, or null if it is empty or too long. */
+export function cleanTitle(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const t = value.trim();
+  return t.length === 0 || t.length > 500 ? null : t;
+}
+
+export function toTask(d: TaskDoc): Task {
+  return {
+    id: d._id.toHexString(),
+    title: d.title,
+    priority: d.priority,
+    completed: d.completed,
+    createdAt: d.createdAt.toISOString(),
+    completedAt: d.completedAt ? d.completedAt.toISOString() : null,
+    updatedAt: d.updatedAt.toISOString(),
+  };
+}
+
+async function tasksCollection(): Promise<Collection<TaskDoc>> {
+  return (await getDb()).collection<TaskDoc>("tasks");
+}
+
+export async function listTasks(userId: string, status: StatusFilter = "active"): Promise<Task[]> {
+  const filter: Filter<TaskDoc> = { userId: new ObjectId(userId) };
+  if (status === "active") filter.completed = false;
+  if (status === "done") filter.completed = true;
+
+  const docs = await (await tasksCollection()).find(filter).toArray();
+
+  if (status === "done") {
+    // Most recently completed first.
+    docs.sort((a, b) => (b.completedAt?.getTime() ?? 0) - (a.completedAt?.getTime() ?? 0));
+  } else {
+    // High → medium → normal, then newest first within each group.
+    docs.sort(
+      (a, b) =>
+        PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] ||
+        b.createdAt.getTime() - a.createdAt.getTime()
+    );
+  }
+  return docs.map(toTask);
+}
+
+export async function createTask(userId: string, title: string, priority: Priority): Promise<Task> {
+  const now = new Date();
+  const doc: TaskDoc = {
+    _id: new ObjectId(),
+    userId: new ObjectId(userId),
+    title,
+    priority,
+    completed: false,
+    createdAt: now,
+    completedAt: null,
+    updatedAt: now,
+  };
+  await (await tasksCollection()).insertOne(doc);
+  return toTask(doc);
+}
+
+export async function updateTask(userId: string, id: string, patch: TaskPatch): Promise<Task | null> {
+  if (!ObjectId.isValid(id)) return null;
+
+  const now = new Date();
+  const set: Partial<TaskDoc> = { updatedAt: now };
+  if (patch.title !== undefined) set.title = patch.title;
+  if (patch.priority !== undefined) set.priority = patch.priority;
+  if (patch.completed !== undefined) {
+    set.completed = patch.completed;
+    set.completedAt = patch.completed ? now : null;
+  }
+
+  const doc = await (await tasksCollection()).findOneAndUpdate(
+    { _id: new ObjectId(id), userId: new ObjectId(userId) },
+    { $set: set },
+    { returnDocument: "after" }
+  );
+  return doc ? toTask(doc) : null;
+}
+
+export async function deleteTask(userId: string, id: string): Promise<boolean> {
+  if (!ObjectId.isValid(id)) return false;
+  const res = await (await tasksCollection()).deleteOne({
+    _id: new ObjectId(id),
+    userId: new ObjectId(userId),
+  });
+  return res.deletedCount === 1;
+}
