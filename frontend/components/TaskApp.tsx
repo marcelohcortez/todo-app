@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import MicButton from "./MicButton";
 import Nav from "./Nav";
 import { PRIORITIES } from "@/lib/types";
 import type { Priority, Task } from "@/lib/types";
@@ -26,6 +27,7 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
   const [error, setError] = useState("");
 
   const [title, setTitle] = useState("");
+  const spokenPrefix = useRef("");
   const [priority, setPriority] = useState<Priority>("normal");
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -108,13 +110,23 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
       <main className="container">
         {view === "active" && (
           <form className="add" onSubmit={addTask}>
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="What needs doing?"
-              maxLength={500}
-              aria-label="New task title"
-            />
+            <div className="input-wrap">
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="What needs doing?"
+                maxLength={500}
+                aria-label="New task title"
+              />
+              <MicButton
+                onStart={() => {
+                  // Keep what is already typed; dictation is added after it.
+                  spokenPrefix.current = title.trim() ? `${title.trimEnd()} ` : "";
+                }}
+                onResult={(text) => setTitle((spokenPrefix.current + text).slice(0, 500))}
+                onError={setError}
+              />
+            </div>
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value as Priority)}

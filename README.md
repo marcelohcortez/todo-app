@@ -107,6 +107,11 @@ Task objects include `createdAt` and `completedAt`.
 
 ## Notes
 
+- Voice input: tap the microphone in the new-task field and speak. The words fill the field so you can
+  edit them before adding. It uses the browser's speech recognition, so Chrome on Android works best.
+  The browser sends the audio to its speech service (Google, in Chrome). The button is hidden in browsers
+  without speech recognition.
+
 - Sessions are signed JWTs in an httpOnly cookie that lasts one year. Changing `AUTH_SECRET` logs everyone out.
   The secret lives only in the backend project.
 - Passwords are hashed with bcrypt. MCP tokens are stored only as SHA-256 hashes.
