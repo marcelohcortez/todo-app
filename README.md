@@ -107,6 +107,9 @@ Task objects include `createdAt` and `completedAt`.
 
 ## Notes
 
+- On phones, a bottom bar gives quick access to To do, Done, Settings and Log out. The centre **+** opens
+  the new-task pop-up (text, microphone, priority and Add). On desktop, the top menu and the inline
+  form are used instead.
 - Voice input: tap the microphone in the new-task field and speak. The words fill the field so you can
   edit them before adding. It uses the browser's speech recognition, so Chrome on Android works best.
   The browser sends the audio to its speech service (Google, in Chrome). The button is hidden in browsers

@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import MicButton from "./MicButton";
+import { FormEvent, useCallback, useEffect, useState } from "react";
+import AddTaskForm from "./AddTaskForm";
 import Nav from "./Nav";
 import { PRIORITIES } from "@/lib/types";
 import type { Priority, Task } from "@/lib/types";
@@ -27,8 +27,8 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
   const [error, setError] = useState("");
 
   const [title, setTitle] = useState("");
-  const spokenPrefix = useRef("");
   const [priority, setPriority] = useState<Priority>("normal");
+  const [addOpen, setAddOpen] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -48,6 +48,23 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
     load();
   }, [load]);
 
+  // The "+" on other pages links to /?add=1, which opens the add sheet here.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("add") === "1") {
+      setAddOpen(true);
+      window.history.replaceState(null, "", "/");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!addOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setAddOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [addOpen]);
+
   async function run(action: () => Promise<unknown>) {
     setError("");
     try {
@@ -66,6 +83,7 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
       await api("/api/tasks", { method: "POST", body: JSON.stringify({ title: t, priority }) });
       setTitle("");
       setPriority("normal");
+      setAddOpen(false);
     });
   }
 
@@ -106,40 +124,49 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
 
   return (
     <>
-      <Nav current={view} />
+      <Nav current={view} onAdd={view === "active" ? () => setAddOpen(true) : undefined} />
+
+      {view === "active" && addOpen && (
+        <div className="sheet-backdrop" onClick={() => setAddOpen(false)}>
+          <div
+            className="sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="New task"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sheet-head">
+              <h2>New task</h2>
+              <button className="ghost" type="button" onClick={() => setAddOpen(false)}>
+                Cancel
+              </button>
+            </div>
+            <AddTaskForm
+              variant="sheet"
+              autoFocus
+              title={title}
+              onTitleChange={setTitle}
+              priority={priority}
+              onPriorityChange={setPriority}
+              onSubmit={addTask}
+              onError={setError}
+            />
+            {error && <p className="error">{error}</p>}
+          </div>
+        </div>
+      )}
+
       <main className="container">
         {view === "active" && (
-          <form className="add" onSubmit={addTask}>
-            <div className="input-wrap">
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="What needs doing?"
-                maxLength={500}
-                aria-label="New task title"
-              />
-              <MicButton
-                onStart={() => {
-                  // Keep what is already typed; dictation is added after it.
-                  spokenPrefix.current = title.trim() ? `${title.trimEnd()} ` : "";
-                }}
-                onResult={(text) => setTitle((spokenPrefix.current + text).slice(0, 500))}
-                onError={setError}
-              />
-            </div>
-            <select
-              value={priority}
-              onChange={(e) => setPriority(e.target.value as Priority)}
-              aria-label="Priority"
-            >
-              {PRIORITIES.map((p) => (
-                <option key={p} value={p}>
-                  {LABEL[p]}
-                </option>
-              ))}
-            </select>
-            <button type="submit">Add</button>
-          </form>
+          <AddTaskForm
+            variant="inline"
+            title={title}
+            onTitleChange={setTitle}
+            priority={priority}
+            onPriorityChange={setPriority}
+            onSubmit={addTask}
+            onError={setError}
+          />
         )}
 
         {error && <p className="error">{error}</p>}
