@@ -211,6 +211,7 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
                 <li key={task.id} className={`item prio-${task.priority} ${task.completed ? "done" : ""}`}>
                   <input
                     type="checkbox"
+                    className="check"
                     checked={task.completed}
                     onChange={() => toggle(task)}
                     aria-label={task.completed ? `Mark "${task.title}" as not done` : `Mark "${task.title}" as done`}

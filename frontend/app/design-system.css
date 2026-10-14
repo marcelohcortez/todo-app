@@ -1,0 +1,231 @@
+/*
+ * Design system: tokens and shared building blocks.
+ * Rules and usage are in frontend/DESIGN.md. Change a value here, not in a component.
+ */
+
+/* ---------- 1. Tokens ---------- */
+
+:root {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --bg: #0d0d16;
+  --card: #171725;
+  --card-2: #1f1f33;
+  --border: #272739;
+
+  /* Text */
+  --text: #f4f4fa;
+  --muted: #9b9bb4;
+
+  /* Brand */
+  --accent: #7c5cff;
+  --accent-soft: rgba(124, 92, 255, 0.16);
+
+  /* Status */
+  --danger: #ff6b8a;
+  --high: #ff6b8a;
+  --medium: #ffb547;
+  --normal: #8a8aa3;
+  --done: #34d399;
+  --todo: #60a5fa;
+
+  /* Shape */
+  --radius-sm: 14px;
+  --radius-md: 20px;
+  --radius-lg: 28px;
+  --radius-pill: 999px;
+
+  /* Elevation */
+  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.25);
+  --shadow-float: 0 12px 32px rgba(0, 0, 0, 0.45);
+
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+
+  /* Type */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-md: 16px;
+  --text-lg: 19px;
+  --text-xl: 22px;
+}
+
+/* ---------- 2. Base ---------- */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background:
+    radial-gradient(900px 420px at 50% -120px, rgba(124, 92, 255, 0.22), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+  color: var(--text);
+  -webkit-text-size-adjust: 100%;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+code {
+  font-size: 13px;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.error {
+  color: var(--danger);
+}
+
+.row {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* ---------- 3. Inputs ---------- */
+
+/* 16px inputs stop iOS from zooming in on focus. */
+input,
+select {
+  font-size: var(--text-md);
+  padding: 12px var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  color: var(--text);
+  min-width: 0;
+  width: 100%;
+}
+
+/* ---------- 4. Buttons ---------- */
+
+/* Primary: the default button. */
+button {
+  min-height: 44px;
+  padding: 10px var(--space-4);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Ghost: text-style action. */
+button.ghost {
+  background: transparent;
+  color: var(--accent);
+  border-color: transparent;
+  font-weight: 500;
+}
+
+/* Danger: destructive text action. Combine with .ghost for a quiet delete. */
+button.danger {
+  color: var(--danger);
+}
+
+/* ---------- 5. Cards and panels ---------- */
+
+.card {
+  background: var(--card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+/* Panel: a card with padding, used for settings sections. */
+.panel {
+  background: var(--card);
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
+  margin-bottom: var(--space-4);
+  box-shadow: var(--shadow-card);
+}
+
+.panel h2 {
+  margin-top: 0;
+  font-size: 17px;
+}
+
+pre.token {
+  white-space: pre-wrap;
+  word-break: break-all;
+  background: var(--bg);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+
+/* ---------- 6. Badges ---------- */
+
+.badge {
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--border);
+  color: var(--muted);
+}
+
+.badge.high {
+  background: color-mix(in srgb, var(--high) 16%, transparent);
+  color: var(--high);
+}
+
+.badge.medium {
+  background: color-mix(in srgb, var(--medium) 16%, transparent);
+  color: var(--medium);
+}
+
+.badge.normal {
+  background: color-mix(in srgb, var(--normal) 18%, transparent);
+  color: var(--normal);
+}
+
+/* ---------- 7. Checkbox (round, used for completion) ---------- */
+
+.check {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  margin: 0;
+  padding: 0;
+  border: 2px solid var(--muted);
+  border-radius: 50%;
+  background: transparent;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.check:checked {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-6' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-size: 14px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
