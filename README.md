@@ -28,7 +28,7 @@ Run each project in its own terminal.
 
    ```bash
    cd backend
-   cp .env.example .env.local   # fill in MONGODB_URI and AUTH_SECRET, ALLOW_SIGNUP=true for the first run
+   cp .env.example .env.local   # fill in MONGODB_URI, AUTH_SECRET and ADMIN_EMAIL (your own email)
    npm install
    npm run dev -- -p 3001
    ```
@@ -42,8 +42,9 @@ Run each project in its own terminal.
    npm run dev
    ```
 
-3. Open http://localhost:3000, click **Create one**, and register.
-4. Set `ALLOW_SIGNUP=false` in the backend's environment so nobody else can register.
+3. Open http://localhost:3000 and log in with the account whose email is `ADMIN_EMAIL`. Create that account
+   first, for example with a script that inserts a user with a bcrypt password hash. There is no public sign-up.
+   The admin adds other people from **Options → Add user**.
 
 ## Deploy to Vercel
 
@@ -52,7 +53,7 @@ Create two Vercel projects from the same GitHub repo.
 **Backend project**
 
 1. Root directory: `backend`.
-2. Environment variables: `MONGODB_URI`, `MONGODB_DB`, `AUTH_SECRET`, `ALLOW_SIGNUP`, and `PUBLIC_URL`
+2. Environment variables: `MONGODB_URI`, `MONGODB_DB`, `AUTH_SECRET`, `ADMIN_EMAIL`, and `PUBLIC_URL`
    = the **frontend** URL (no trailing slash). `PUBLIC_URL` is used for the OAuth sign-in for claude.ai.
    Optional: `ALLOWED_REDIRECT_HOSTS` = extra AI callback hosts that may connect, comma-separated
    (for example `chatgpt.com`). `claude.ai` and `claude.com` are always allowed.
@@ -231,3 +232,24 @@ or transcribed in the browser by the microphone button.
 - Sessions are signed JWTs in an httpOnly cookie that lasts one year. Changing `AUTH_SECRET` logs everyone out.
   The secret lives only in the backend project.
 - Passwords are hashed with bcrypt. MCP tokens are stored only as SHA-256 hashes.
+
+## Tests
+
+Unit tests use [Vitest](https://vitest.dev) (the Vite test runner). Browser tests use [Playwright](https://playwright.dev).
+
+```bash
+cd backend && npm test          # validation, mapping and token helpers
+cd frontend && npm test         # components (React Testing Library, jsdom)
+```
+
+The end-to-end tests start both apps and run them against a MongoDB you choose. They **wipe every collection**
+in that database, so they refuse to run unless the database name contains `e2e`.
+
+```bash
+cd frontend
+npx playwright install chromium
+E2E_MONGODB_URI="mongodb://localhost:27017" E2E_MONGODB_DB=todo_e2e npm run test:e2e
+```
+
+The setup creates an admin account (`admin@e2e.test`) in that database. Phone-size tests are the files
+ending in `.phone.spec.ts`.
