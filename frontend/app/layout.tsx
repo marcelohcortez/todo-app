@@ -3,7 +3,7 @@ import type { Metadata, Viewport } from "next";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 
 export const metadata: Metadata = {
-  title: "Tasks",
+  title: "Keeptrack",
   description: "Simple to-do list",
   // The web app manifest is served from app/manifest.ts.
   icons: {
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     ],
     apple: "/icons/apple-touch-icon.png",
   },
-  appleWebApp: { capable: true, title: "Tasks", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "Keeptrack", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {

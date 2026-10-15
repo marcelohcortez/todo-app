@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
       { error: "Unauthorized" },
       {
         status: 401,
-        headers: { "WWW-Authenticate": `Bearer realm="todo-app", resource_metadata="${metadata}"` },
+        headers: { "WWW-Authenticate": `Bearer realm="keeptrack", resource_metadata="${metadata}"` },
       }
     );
   }

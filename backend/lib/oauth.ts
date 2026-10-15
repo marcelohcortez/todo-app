@@ -66,7 +66,7 @@ async function collections() {
 
 // ---------- URLs ----------
 
-/** The public origin the browser and Claude use, e.g. https://todo-app.vercel.app (the frontend). */
+/** The public origin the browser and Claude use, e.g. https://keeptrack-app.vercel.app (the frontend). */
 export function publicBaseUrl(req: NextRequest): string {
   if (process.env.PUBLIC_URL) return process.env.PUBLIC_URL.replace(/\/+$/, "");
   const proto = req.headers.get("x-forwarded-proto") ?? req.nextUrl.protocol.replace(":", "");
@@ -81,7 +81,7 @@ export function protectedResourceMetadata(base: string) {
     resource: `${base}/api/mcp`,
     authorization_servers: [base],
     bearer_methods_supported: ["header"],
-    resource_name: "Tasks",
+    resource_name: "Keeptrack",
   };
 }
 

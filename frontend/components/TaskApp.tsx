@@ -314,14 +314,31 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
                       <span>Added {fmt(task.createdAt)}</span>
                       {task.completedAt && <span>· Completed {fmt(task.completedAt)}</span>}
                     </div>
-                  </div>
-                  <div className="actions">
-                    <button className="ghost" onClick={() => startEdit(task)}>
-                      Edit
-                    </button>
-                    <button className="ghost danger" onClick={() => remove(task)}>
-                      Delete
-                    </button>
+                    <div className="item-actions">
+                      <button
+                        className="icon-btn"
+                        type="button"
+                        onClick={() => startEdit(task)}
+                        aria-label={`Edit "${task.title}"`}
+                        title="Edit"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M4 20h4L19 9l-4-4L4 16z" />
+                          <path d="M13.5 6.5l4 4" />
+                        </svg>
+                      </button>
+                      <button
+                        className="icon-btn danger"
+                        type="button"
+                        onClick={() => remove(task)}
+                        aria-label={`Delete "${task.title}"`}
+                        title="Delete"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 </li>
               )

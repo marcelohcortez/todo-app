@@ -82,24 +82,26 @@ export default function Nav({ current, onAddTask, onAddNote }: Props) {
   return (
     <>
       <header className="nav">
-        <h1>Tasks</h1>
+        <h1>Keeptrack</h1>
         <nav className="nav-links">
           <Link href="/" className={current === "active" ? "active" : ""}>
             To do
           </Link>
-          <Link href="/done" className={current === "done" ? "active" : ""}>
-            Done
-          </Link>
           <Link href="/notes" className={current === "notes" ? "active" : ""}>
             Notes
           </Link>
+          <Link href="/done" className={current === "done" ? "active" : ""}>
+            Done
+          </Link>
+        </nav>
+        <div className="nav-right">
           <Link href="/settings" className={current === "settings" ? "active" : ""}>
             Settings
           </Link>
-        </nav>
-        <button className="ghost nav-logout" onClick={logout}>
-          Log out
-        </button>
+          <button className="ghost nav-logout" onClick={logout}>
+            Log out
+          </button>
+        </div>
       </header>
 
       {chooseOpen && (

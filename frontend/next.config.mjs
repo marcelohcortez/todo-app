@@ -1,6 +1,6 @@
 const backendUrl = process.env.BACKEND_URL;
 if (!backendUrl) {
-  throw new Error("BACKEND_URL is not set (the backend's URL, e.g. https://todo-api.vercel.app)");
+  throw new Error("BACKEND_URL is not set (the backend's URL, e.g. https://keeptrack-api.vercel.app)");
 }
 
 /** @type {import('next').NextConfig} */

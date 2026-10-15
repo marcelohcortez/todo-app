@@ -188,7 +188,7 @@ export async function handleMessage(raw: unknown, userId: string): Promise<unkno
         return rpcResult(id, {
           protocolVersion: "2025-03-26",
           capabilities: { tools: {} },
-          serverInfo: { name: "todo-app", version: "1.0.0" },
+          serverInfo: { name: "keeptrack", version: "1.0.0" },
         });
 
       case "notifications/initialized":

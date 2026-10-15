@@ -3,8 +3,8 @@ import type { MetadataRoute } from "next";
 // Served at /manifest.webmanifest. Lets the browser offer "Install app" or "Add to Home Screen".
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Tasks",
-    short_name: "Tasks",
+    name: "Keeptrack",
+    short_name: "Keeptrack",
     description: "Simple to-do list",
     start_url: "/",
     scope: "/",

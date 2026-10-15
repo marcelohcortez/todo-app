@@ -1,4 +1,4 @@
-# Tasks
+# Keeptrack
 
 A to-do app with email/password login (kept for one year), priorities (High, Medium, Normal),
 a Done page, and an MCP endpoint so an AI client can manage your tasks.
@@ -56,7 +56,7 @@ Create two Vercel projects from the same GitHub repo.
    = the **frontend** URL (no trailing slash). `PUBLIC_URL` is used for the OAuth sign-in for claude.ai.
    Optional: `ALLOWED_REDIRECT_HOSTS` = extra AI callback hosts that may connect, comma-separated
    (for example `chatgpt.com`). `claude.ai` and `claude.com` are always allowed.
-3. Deploy. Note its URL, for example `https://todo-api.vercel.app`.
+3. Deploy. Note its URL, for example `https://keeptrack-api.vercel.app`.
 
 **Frontend project**
 
