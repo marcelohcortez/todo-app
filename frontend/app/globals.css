@@ -575,7 +575,8 @@
 
   .add,
   .add-note,
-  .new-task-toggle {
+  .new-task-toggle,
+  .new-note-toggle {
     display: none;
   }
 
