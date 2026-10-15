@@ -16,6 +16,9 @@ import { PRIORITIES } from "./types";
 
 // ---------- token handling ----------
 
+// The id that Settings uses for the single token saved before named tokens existed.
+export const LEGACY_TOKEN_ID = "legacy";
+
 export function generateMcpToken(): string {
   return "tdk_" + randomBytes(32).toString("hex");
 }
@@ -26,7 +29,10 @@ export function hashToken(token: string): string {
 
 // Accepts a token from the Settings page (Claude Code, Claude Desktop) or an OAuth access token (claude.ai).
 export async function userIdForMcpToken(token: string): Promise<string | null> {
-  const user = await (await usersCollection()).findOne({ mcpTokenHash: hashToken(token) });
+  const hash = hashToken(token);
+  const user = await (await usersCollection()).findOne({
+    $or: [{ "mcpTokens.hash": hash }, { mcpTokenHash: hash }],
+  });
   if (user) return user._id.toHexString();
   return userIdForAccessToken(token);
 }

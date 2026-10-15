@@ -3,6 +3,13 @@
 import { useEffect, useState } from "react";
 import Nav from "./Nav";
 
+interface McpToken {
+  id: string;
+  label: string;
+  // Null for a token saved before named tokens existed.
+  createdAt: string | null;
+}
+
 interface Connection {
   clientId: string;
   clientName: string;
@@ -16,7 +23,9 @@ function fmtDate(iso: string): string {
 
 export default function SettingsPanel() {
   const [origin, setOrigin] = useState("");
-  const [hasToken, setHasToken] = useState<boolean | null>(null);
+  const [tokens, setTokens] = useState<McpToken[] | null>(null);
+  const [newLabel, setNewLabel] = useState("");
+  // The plain token of the one just created. It is shown once and never fetched again.
   const [token, setToken] = useState("");
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
@@ -36,35 +45,42 @@ export default function SettingsPanel() {
   useEffect(() => {
     setOrigin(window.location.origin);
     loadConnections().catch(() => setConnectionError("Could not load connected apps"));
-    fetch("/api/mcp-token", { cache: "no-store" })
-      .then((r) => {
-        if (r.status === 401) {
-          window.location.href = "/login";
-          return null;
-        }
-        return r.json();
-      })
-      .then((d) => {
-        if (d) setHasToken(Boolean(d.hasToken));
-      })
-      .catch(() => setError("Could not load settings"));
+    loadTokens().catch(() => setError("Could not load settings"));
   }, []);
+
+  async function loadTokens() {
+    const res = await fetch("/api/mcp-token", { cache: "no-store" });
+    if (res.status === 401) {
+      window.location.href = "/login";
+      return;
+    }
+    const data = await res.json();
+    setTokens(data.tokens ?? []);
+  }
 
   async function generate() {
     setError("");
     setCopied(false);
-    const res = await fetch("/api/mcp-token", { method: "POST" });
+    const res = await fetch("/api/mcp-token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ label: newLabel }),
+    });
     const data = await res.json();
     if (!res.ok) return setError(data.error ?? "Failed to create token");
     setToken(data.token);
-    setHasToken(true);
+    setNewLabel("");
+    loadTokens();
   }
 
-  async function revoke() {
-    if (!window.confirm("Revoke the MCP token? Any AI client using it, including claude.ai, will lose access.")) return;
-    await fetch("/api/mcp-token", { method: "DELETE" });
+  // Revokes one token. The other tokens and the connected apps keep working.
+  async function revoke(item: McpToken) {
+    if (!window.confirm(`Revoke the token "${item.label}"? The AI client using it will lose access.`)) return;
+    setError("");
+    const res = await fetch(`/api/mcp-token/${encodeURIComponent(item.id)}`, { method: "DELETE" });
+    if (!res.ok) return setError("Could not revoke the token. Try again.");
     setToken("");
-    setHasToken(false);
+    loadTokens();
   }
 
   async function copy() {
@@ -107,21 +123,51 @@ export default function SettingsPanel() {
         <section className="panel">
           <h2>AI access (MCP)</h2>
           <p className="muted">
-            Lets an AI client create, edit, complete and delete your tasks. The token is shown only once
-            when you create it. Creating a new one replaces the old one.
+            Lets an AI client create, edit, complete and delete your tasks. Give each client its own token, so
+            you can revoke one without affecting the others. A token is shown only once, when you create it.
           </p>
           <p>
             Endpoint: <code>{mcpUrl}</code>
           </p>
-          <div className="row">
-            <button onClick={generate}>{hasToken ? "Create new token" : "Create token"}</button>
-            {hasToken && (
-              <button className="ghost danger" onClick={revoke}>
-                Revoke token
-              </button>
-            )}
-          </div>
-          {hasToken === false && !token && <p className="muted">No token yet.</p>}
+          <form
+            className="row"
+            onSubmit={(e) => {
+              e.preventDefault();
+              generate();
+            }}
+          >
+            <input
+              value={newLabel}
+              onChange={(e) => setNewLabel(e.target.value)}
+              placeholder="Name, for example Claude Code"
+              maxLength={40}
+              aria-label="Token name"
+            />
+            <button type="submit">Create token</button>
+          </form>
+          {tokens === null && <p className="muted">Loading…</p>}
+          {tokens?.length === 0 && <p className="muted">No tokens yet.</p>}
+          {tokens && tokens.length > 0 && (
+            <ul className="list">
+              {tokens.map((t) => (
+                <li key={t.id} className="item">
+                  <div className="body">
+                    <span className="title">{t.label}</span>
+                    {t.createdAt && (
+                      <div className="meta">
+                        <span>Created {fmtDate(t.createdAt)}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="actions">
+                    <button className="ghost danger" onClick={() => revoke(t)}>
+                      Revoke
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
           {token && (
             <>
               <p>Copy this token now. You will not see it again:</p>

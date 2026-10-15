@@ -46,10 +46,20 @@ export interface BoardDoc {
   createdAt: Date;
 }
 
+// A token for an AI client. Only its hash is stored; the plain token is shown once, when it is created.
+export interface McpTokenDoc {
+  id: string;
+  label: string;
+  hash: string;
+  createdAt: Date;
+}
+
 export interface UserDoc {
   _id: ObjectId;
   email: string;
   passwordHash: string;
+  mcpTokens?: McpTokenDoc[];
+  // The single token from before named tokens existed. Still accepted, and removable from Settings.
   mcpTokenHash?: string;
   createdAt: Date;
 }

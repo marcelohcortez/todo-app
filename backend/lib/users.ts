@@ -10,7 +10,7 @@ export async function usersCollection(): Promise<Collection<UserDoc>> {
   const col = (await getDb()).collection<UserDoc>("users");
   if (!indexesReady) {
     await col.createIndex({ email: 1 }, { unique: true });
-    await col.createIndex({ mcpTokenHash: 1 }, { sparse: true });
+    await col.createIndex({ "mcpTokens.hash": 1 }, { sparse: true });
     indexesReady = true;
   }
   return col;
