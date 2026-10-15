@@ -23,6 +23,15 @@
   font-size: var(--text-xl);
   font-weight: 700;
   margin: 0;
+  line-height: 0;
+}
+
+/* The logo is wide, so it sets the height and the width follows. */
+.brand-logo {
+  display: block;
+  width: auto;
+  height: 40px;
+  max-width: 100%;
 }
 
 .nav-links {
