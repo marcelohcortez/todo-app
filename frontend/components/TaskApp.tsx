@@ -45,6 +45,8 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
   const [addOpen, setAddOpen] = useState(false);
   // Desktop: the inline add form is shown only after "+ New task" is clicked.
   const [inlineOpen, setInlineOpen] = useState(false);
+  // The "+ New board" form. It is closed whenever the add-task form is open, and the reverse.
+  const [boardFormOpen, setBoardFormOpen] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -249,11 +251,21 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
         {view === "active" && (
           <NewBoardForm
             onCreate={createBoard}
+            open={boardFormOpen}
+            // Only one of the two forms is open at a time.
+            onOpen={() => {
+              setInlineOpen(false);
+              setBoardFormOpen(true);
+            }}
+            onClose={() => setBoardFormOpen(false)}
             before={
               <button
                 className="ghost new-task-toggle"
                 type="button"
-                onClick={() => setInlineOpen((open) => !open)}
+                onClick={() => {
+                  setBoardFormOpen(false);
+                  setInlineOpen((open) => !open);
+                }}
                 aria-expanded={inlineOpen}
               >
                 {inlineOpen ? "Cancel" : "+ New task"}

@@ -7,11 +7,14 @@ interface Props {
   onCreate: (name: string) => Promise<boolean>;
   // Shown on the left of "+ New board" in the same row, for example the "+ New task" toggle.
   before?: ReactNode;
+  // The parent owns the open state so it can close this form when another one opens.
+  open: boolean;
+  onOpen: () => void;
+  onClose: () => void;
 }
 
 // The row of controls above the add-task field: "+ New board" opens a small inline form.
-export default function NewBoardForm({ onCreate, before }: Props) {
-  const [open, setOpen] = useState(false);
+export default function NewBoardForm({ onCreate, before, open, onOpen, onClose }: Props) {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -24,7 +27,7 @@ export default function NewBoardForm({ onCreate, before }: Props) {
     setBusy(false);
     if (ok) {
       setName("");
-      setOpen(false);
+      onClose();
     }
   }
 
@@ -33,7 +36,7 @@ export default function NewBoardForm({ onCreate, before }: Props) {
       <div className="board-bar">
         {before}
         {!open && (
-          <button className="ghost" type="button" onClick={() => setOpen(true)}>
+          <button className="ghost" type="button" onClick={onOpen}>
             + New board
           </button>
         )}
@@ -56,7 +59,7 @@ export default function NewBoardForm({ onCreate, before }: Props) {
             className="ghost"
             type="button"
             onClick={() => {
-              setOpen(false);
+              onClose();
               setName("");
             }}
           >
