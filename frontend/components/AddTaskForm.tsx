@@ -66,12 +66,15 @@ export default function AddTaskForm({
         />
       </div>
       <select value={boardId} onChange={(e) => onBoardChange(e.target.value)} aria-label="Board">
+        <option value="" disabled>
+          Select board
+        </option>
+        <option value={NEW_BOARD}>+ Add new board</option>
         {boards.map((b) => (
           <option key={b.id} value={b.id}>
             {b.name}
           </option>
         ))}
-        <option value={NEW_BOARD}>Create new board</option>
       </select>
       <select
         value={priority}

@@ -121,6 +121,7 @@
 .board-bar {
   display: flex;
   justify-content: flex-end;
+  gap: var(--space-2);
   margin-bottom: var(--space-2);
 }
 
@@ -159,6 +160,117 @@
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
+}
+
+/* A board pill: the name, then a small x to remove the board. Both share one pill shape. */
+.pill-board {
+  display: inline-flex;
+  align-items: stretch;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--card);
+  overflow: hidden;
+}
+
+.pill-board.active {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.pill-name,
+.pill-remove {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  min-height: 34px;
+  color: var(--muted);
+}
+
+.pill-name {
+  padding: 6px 6px 6px 14px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pill-remove {
+  width: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pill-remove svg {
+  width: 14px;
+  height: 14px;
+}
+
+.pill-remove:hover,
+.pill-name:hover {
+  color: var(--text);
+}
+
+.pill-board.active .pill-name,
+.pill-board.active .pill-remove {
+  color: #fff;
+}
+
+/* Choices in the remove-board sheet. */
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.choice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  min-height: 0;
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  background: var(--card-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 500;
+}
+
+.choice.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.choice:disabled {
+  opacity: 0.5;
+}
+
+.choice-title {
+  font-weight: 600;
+}
+
+.choice-note {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.sheet-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+/* Destructive confirm button. */
+.btn-danger {
+  background: var(--danger);
+  border-color: var(--danger);
 }
 
 .board-tag {
@@ -462,7 +574,8 @@
   }
 
   .add,
-  .add-note {
+  .add-note,
+  .new-task-toggle {
     display: none;
   }
 

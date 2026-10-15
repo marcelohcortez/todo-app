@@ -2,7 +2,9 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import AddTaskForm, { NEW_BOARD } from "./AddTaskForm";
-import BoardPills, { ALL, NO_BOARD } from "./BoardPills";
+import BoardPills, { ALL } from "./BoardPills";
+import DeleteBoardSheet from "./DeleteBoardSheet";
+import type { BoardRemoval } from "./DeleteBoardSheet";
 import NewBoardForm from "./NewBoardForm";
 import Nav from "./Nav";
 import { useLiveRefresh } from "./useLiveRefresh";
@@ -30,8 +32,10 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
   const [boards, setBoards] = useState<Board[]>([]);
   const [error, setError] = useState("");
 
-  // Board filter: ALL, NO_BOARD, or a board id.
+  // Board filter: ALL, or a board id.
   const [filter, setFilter] = useState(ALL);
+  // The board the user asked to remove. Its confirmation sheet is open while this is set.
+  const [boardToRemove, setBoardToRemove] = useState<Board | null>(null);
 
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState<Priority>("normal");
@@ -39,6 +43,8 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
   const [boardChoice, setBoardChoice] = useState("");
   const [newBoardName, setNewBoardName] = useState("");
   const [addOpen, setAddOpen] = useState(false);
+  // Desktop: the inline add form is shown only after "+ New task" is clicked.
+  const [inlineOpen, setInlineOpen] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -96,11 +102,8 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
     }
   }
 
-  // If the user has not picked a board, the first board is used. With no boards yet, the form offers "Create new board".
-  const addBoardId =
-    boardChoice === NEW_BOARD || boards.some((b) => b.id === boardChoice)
-      ? boardChoice
-      : (boards[0]?.id ?? NEW_BOARD);
+  // "" until the user picks a board in the add form ("Select board" is shown until then).
+  const addBoardId = boardChoice;
 
   function createBoard(name: string): Promise<boolean> {
     return run(async () => {
@@ -116,6 +119,7 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
     const t = title.trim();
     if (!t) return;
     run(async () => {
+      if (!addBoardId) throw new Error("Select a board for the task");
       let boardId = addBoardId;
       if (boardId === NEW_BOARD) {
         const name = newBoardName.trim();
@@ -132,8 +136,10 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
       setTitle("");
       setPriority("normal");
       setNewBoardName("");
-      setBoardChoice(boardId);
+      // Back to "Select board", so each task gets a board chosen on purpose.
+      setBoardChoice("");
       setAddOpen(false);
+      setInlineOpen(false);
     });
   }
 
@@ -170,12 +176,21 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
     });
   }
 
+  // Removes a board and its tasks, or moves the tasks first. Resolves to an error message, or null on success.
+  async function removeBoardNow(board: Board, removal: BoardRemoval): Promise<string | null> {
+    try {
+      await api(`/api/boards/${board.id}`, { method: "DELETE", body: JSON.stringify(removal) });
+    } catch (err) {
+      return (err as Error).message;
+    }
+    setBoardToRemove(null);
+    if (filter === board.id) setFilter(ALL);
+    await load();
+    return null;
+  }
+
   // The list the pills choose from. The filter is applied here, on the tasks already loaded.
-  const visible = (tasks ?? []).filter((t) => {
-    if (filter === ALL) return true;
-    if (filter === NO_BOARD) return t.boardId === null;
-    return t.boardId === filter;
-  });
+  const visible = (tasks ?? []).filter((t) => filter === ALL || t.boardId === filter);
 
   const boardName = (id: string | null) => boards.find((b) => b.id === id)?.name;
 
@@ -221,10 +236,33 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
         </div>
       )}
 
-      <main className="container">
-        {view === "active" && <NewBoardForm onCreate={createBoard} />}
+      {boardToRemove && (
+        <DeleteBoardSheet
+          board={boardToRemove}
+          otherBoards={boards.filter((b) => b.id !== boardToRemove.id)}
+          onCancel={() => setBoardToRemove(null)}
+          onConfirm={(removal) => removeBoardNow(boardToRemove, removal)}
+        />
+      )}
 
+      <main className="container">
         {view === "active" && (
+          <NewBoardForm
+            onCreate={createBoard}
+            before={
+              <button
+                className="ghost new-task-toggle"
+                type="button"
+                onClick={() => setInlineOpen((open) => !open)}
+                aria-expanded={inlineOpen}
+              >
+                {inlineOpen ? "Cancel" : "+ New task"}
+              </button>
+            }
+          />
+        )}
+
+        {view === "active" && inlineOpen && (
           <AddTaskForm
             variant="inline"
             title={title}
@@ -244,7 +282,7 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
         {error && <p className="error">{error}</p>}
 
         {tasks !== null && (
-          <BoardPills boards={boards} tasks={tasks} value={filter} onChange={setFilter} />
+          <BoardPills boards={boards} value={filter} onChange={setFilter} onRemove={setBoardToRemove} />
         )}
 
         {tasks === null ? (

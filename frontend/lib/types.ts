@@ -16,6 +16,9 @@ export interface Board {
   id: string;
   name: string;
   createdAt: string;
+  taskCount: number;
+  activeCount: number;
+  doneCount: number;
 }
 
 // Shape returned by the backend API.

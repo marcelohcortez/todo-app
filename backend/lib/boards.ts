@@ -2,7 +2,7 @@ import { ObjectId } from "mongodb";
 import type { Collection } from "mongodb";
 import { getDb } from "./mongodb";
 import { notifyChanged } from "./realtime";
-import type { Board, BoardDoc } from "./types";
+import type { Board, BoardDoc, TaskDoc } from "./types";
 
 const MAX_NAME = 40;
 
@@ -87,6 +87,35 @@ export async function createBoard(userId: string, name: string): Promise<Board> 
   await col.insertOne(doc);
   await notifyChanged(userId);
   return toBoard(doc);
+}
+
+// What happens to a board's tasks when the board is removed. Done tasks are included.
+export type BoardRemoval = { action: "delete" } | { action: "move"; targetId: string };
+
+/**
+ * Removes a board. Its tasks are deleted, or moved to `targetId`. The caller checks that the target is another board of this user.
+ * Returns false if the board does not exist for this user.
+ */
+export async function removeBoard(userId: string, id: string, removal: BoardRemoval): Promise<boolean> {
+  if (!ObjectId.isValid(id)) return false;
+  const uid = new ObjectId(userId);
+  const boardId = new ObjectId(id);
+  const boards = await boardsCollection();
+  const board = await boards.findOne({ _id: boardId, userId: uid });
+  if (!board) return false;
+
+  const tasks = (await getDb()).collection<TaskDoc>("tasks");
+  if (removal.action === "move") {
+    await tasks.updateMany(
+      { userId: uid, boardId },
+      { $set: { boardId: new ObjectId(removal.targetId), updatedAt: new Date() } }
+    );
+  } else {
+    await tasks.deleteMany({ userId: uid, boardId });
+  }
+  await boards.deleteOne({ _id: boardId, userId: uid });
+  await notifyChanged(userId);
+  return true;
 }
 
 function escapeRegex(value: string): string {
