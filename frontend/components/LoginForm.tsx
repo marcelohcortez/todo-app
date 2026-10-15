@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 
 export default function LoginForm() {
   const router = useRouter();
-  const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -16,7 +15,7 @@ export default function LoginForm() {
     setBusy(true);
     setError("");
 
-    const res = await fetch(`/api/auth/${mode}`, {
+    const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
@@ -37,7 +36,7 @@ export default function LoginForm() {
 
   return (
     <main className="auth">
-      <h1>{mode === "login" ? "Log in" : "Create account"}</h1>
+      <h1>Log in</h1>
       <form onSubmit={submit}>
         <input
           type="email"
@@ -50,30 +49,16 @@ export default function LoginForm() {
         <input
           type="password"
           placeholder="Password"
-          autoComplete={mode === "login" ? "current-password" : "new-password"}
-          minLength={mode === "register" ? 8 : undefined}
+          autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
         />
         {error && <p className="error">{error}</p>}
         <button type="submit" disabled={busy}>
-          {busy ? "Please wait…" : mode === "login" ? "Log in" : "Create account"}
+          {busy ? "Please wait…" : "Log in"}
         </button>
       </form>
-      <p className="muted">
-        {mode === "login" ? "No account yet? " : "Already have an account? "}
-        <button
-          type="button"
-          className="ghost"
-          onClick={() => {
-            setMode(mode === "login" ? "register" : "login");
-            setError("");
-          }}
-        >
-          {mode === "login" ? "Create one" : "Log in"}
-        </button>
-      </p>
     </main>
   );
 }

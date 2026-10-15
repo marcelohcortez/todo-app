@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
-import { createSession } from "@/lib/auth";
-import { usersCollection } from "@/lib/users";
-import { ObjectId } from "mongodb";
-import type { UserDoc } from "@/lib/types";
+import { getCurrentUserId, unauthorized } from "@/lib/auth";
+import { createUser, currentUser } from "@/lib/users";
 
+// POST /api/users  { email, password }  (admin only)
+// Creates an account for someone else. The admin stays signed in as themselves.
 export async function POST(req: NextRequest) {
-  if (process.env.ALLOW_SIGNUP !== "true") {
-    return NextResponse.json({ error: "Sign-up is disabled" }, { status: 403 });
+  const userId = await getCurrentUserId();
+  if (!userId) return unauthorized();
+  if (!(await currentUser(userId))?.isAdmin) {
+    return NextResponse.json({ error: "Only the admin can add users" }, { status: 403 });
   }
 
   const body = await req.json().catch(() => null);
@@ -21,16 +22,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Password must be 8 to 200 characters" }, { status: 400 });
   }
 
-  const passwordHash = await bcrypt.hash(password, 12);
   try {
-    const user: UserDoc = { _id: new ObjectId(), email, passwordHash, createdAt: new Date() };
-    await (await usersCollection()).insertOne(user);
-    await createSession(user._id.toHexString());
-    return NextResponse.json({ ok: true }, { status: 201 });
+    await createUser(email, password);
   } catch (err) {
     if ((err as { code?: number }).code === 11000) {
       return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 });
     }
     throw err;
   }
+  return NextResponse.json({ user: { email } }, { status: 201 });
 }

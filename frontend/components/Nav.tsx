@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import AddUserSheet from "./AddUserSheet";
 
 type Current = "active" | "done" | "notes" | "settings";
 
@@ -59,20 +60,30 @@ interface Props {
 export default function Nav({ current, onAddTask, onAddNote }: Props) {
   const router = useRouter();
   const [chooseOpen, setChooseOpen] = useState(false);
-  // The phone's Options button: Settings and Log out.
+  // The Options button (top bar on desktop, bottom bar on phones): Settings, Add user (admin only), Log out.
   const [optionsOpen, setOptionsOpen] = useState(false);
+  const [addUserOpen, setAddUserOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    if (!chooseOpen && !optionsOpen) return;
+    fetch("/api/auth/me", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setIsAdmin(Boolean(d?.isAdmin)))
+      .catch(() => setIsAdmin(false));
+  }, []);
+
+  useEffect(() => {
+    if (!chooseOpen && !optionsOpen && !addUserOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setChooseOpen(false);
         setOptionsOpen(false);
+        setAddUserOpen(false);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [chooseOpen, optionsOpen]);
+  }, [chooseOpen, optionsOpen, addUserOpen]);
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -109,11 +120,8 @@ export default function Nav({ current, onAddTask, onAddNote }: Props) {
           </Link>
         </nav>
         <div className="nav-right">
-          <Link href="/settings" className={current === "settings" ? "active" : ""}>
-            Settings
-          </Link>
-          <button className="ghost nav-logout" onClick={logout}>
-            Log out
+          <button className="ghost" type="button" onClick={() => setOptionsOpen(true)} aria-haspopup="dialog">
+            Options
           </button>
         </div>
       </header>
@@ -164,6 +172,17 @@ export default function Nav({ current, onAddTask, onAddNote }: Props) {
               <Link href="/settings" className="button-link" onClick={() => setOptionsOpen(false)}>
                 Settings
               </Link>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOptionsOpen(false);
+                    setAddUserOpen(true);
+                  }}
+                >
+                  Add user
+                </button>
+              )}
               <button type="button" className="ghost danger" onClick={logout}>
                 Log out
               </button>
@@ -171,6 +190,8 @@ export default function Nav({ current, onAddTask, onAddNote }: Props) {
           </div>
         </div>
       )}
+
+      {addUserOpen && <AddUserSheet onClose={() => setAddUserOpen(false)} />}
 
       <nav className="bottom-bar" aria-label="Main">
         <Link href="/" className={current === "active" ? "active" : ""} aria-label="To do">
