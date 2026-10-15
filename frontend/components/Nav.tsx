@@ -109,7 +109,9 @@ export default function Nav({ current, onAddTask, onAddNote }: Props) {
     <>
       <header className="nav">
         <h1>
-          <img src="/logo.png" alt="Keeptrack" className="brand-logo" />
+          <Link href="/" aria-label="Keeptrack home">
+            <img src="/logo.png" alt="Keeptrack" className="brand-logo" />
+          </Link>
         </h1>
         <nav className="nav-links">
           <Link href="/" className={current === "active" ? "active" : ""}>
