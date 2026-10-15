@@ -30,6 +30,13 @@ const ICON = {
     </>
   ),
   logout: <path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 16l-4-4 4-4M6 12h10" />,
+  options: (
+    <>
+      <circle cx="5" cy="12" r="1.5" />
+      <circle cx="12" cy="12" r="1.5" />
+      <circle cx="19" cy="12" r="1.5" />
+    </>
+  ),
 };
 
 function Icon({ children }: { children: React.ReactNode }) {
@@ -52,15 +59,20 @@ interface Props {
 export default function Nav({ current, onAddTask, onAddNote }: Props) {
   const router = useRouter();
   const [chooseOpen, setChooseOpen] = useState(false);
+  // The phone's Options button: Settings and Log out.
+  const [optionsOpen, setOptionsOpen] = useState(false);
 
   useEffect(() => {
-    if (!chooseOpen) return;
+    if (!chooseOpen && !optionsOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setChooseOpen(false);
+      if (e.key === "Escape") {
+        setChooseOpen(false);
+        setOptionsOpen(false);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [chooseOpen]);
+  }, [chooseOpen, optionsOpen]);
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -133,6 +145,33 @@ export default function Nav({ current, onAddTask, onAddNote }: Props) {
         </div>
       )}
 
+      {optionsOpen && (
+        <div className="sheet-backdrop" onClick={() => setOptionsOpen(false)}>
+          <div
+            className="sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Options"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sheet-head">
+              <h2>Options</h2>
+              <button className="ghost" type="button" onClick={() => setOptionsOpen(false)}>
+                Cancel
+              </button>
+            </div>
+            <div className="choose">
+              <Link href="/settings" className="button-link" onClick={() => setOptionsOpen(false)}>
+                Settings
+              </Link>
+              <button type="button" className="ghost danger" onClick={logout}>
+                Log out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <nav className="bottom-bar" aria-label="Main">
         <Link href="/" className={current === "active" ? "active" : ""} aria-label="To do">
           <Icon>{ICON.home}</Icon>
@@ -149,13 +188,14 @@ export default function Nav({ current, onAddTask, onAddNote }: Props) {
           <Icon>{ICON.done}</Icon>
           <span>Done</span>
         </Link>
-        <Link href="/settings" className={current === "settings" ? "active" : ""} aria-label="Settings">
-          <Icon>{ICON.settings}</Icon>
-          <span>Settings</span>
-        </Link>
-        <button type="button" className="bottom-logout" onClick={logout} aria-label="Log out">
-          <Icon>{ICON.logout}</Icon>
-          <span>Log out</span>
+        <button
+          type="button"
+          className={current === "settings" ? "active" : ""}
+          onClick={() => setOptionsOpen(true)}
+          aria-label="Options"
+        >
+          <Icon>{ICON.options}</Icon>
+          <span>Options</span>
         </button>
       </nav>
     </>
