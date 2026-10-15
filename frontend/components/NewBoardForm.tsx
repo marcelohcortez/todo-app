@@ -35,7 +35,19 @@ export default function NewBoardForm({ onCreate, before, open, onOpen, onClose }
     <>
       <div className="board-bar">
         {before}
-        {!open && (
+        {open ? (
+          // Cancel takes the place of "+ New board", the same as the task form's Cancel.
+          <button
+            className="ghost"
+            type="button"
+            onClick={() => {
+              onClose();
+              setName("");
+            }}
+          >
+            Cancel
+          </button>
+        ) : (
           <button className="ghost" type="button" onClick={onOpen}>
             + New board
           </button>
@@ -54,16 +66,6 @@ export default function NewBoardForm({ onCreate, before, open, onOpen, onClose }
           />
           <button type="submit" disabled={busy || !name.trim()}>
             Create board
-          </button>
-          <button
-            className="ghost"
-            type="button"
-            onClick={() => {
-              onClose();
-              setName("");
-            }}
-          >
-            Cancel
           </button>
         </form>
       )}
