@@ -653,3 +653,100 @@
     box-shadow: 0 10px 24px rgba(124, 92, 255, 0.45);
   }
 }
+
+/* ---------- Options: dropdown on desktop, sheet on phones ---------- */
+
+.options-anchor {
+  position: relative;
+}
+
+/* Transparent layer under the dropdown; a click on it closes the menu. */
+.options-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+}
+
+.options-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 10;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-float);
+}
+
+.options-dropdown a,
+.options-dropdown button {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  padding: 10px 14px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  text-align: left;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.options-dropdown a:hover,
+.options-dropdown button:hover {
+  background: var(--accent-soft);
+}
+
+.options-dropdown button.danger {
+  color: var(--danger);
+}
+
+/* The sheet is the phone version only. */
+.options-sheet {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .options-sheet {
+    display: flex;
+  }
+}
+
+/* ---------- Users page ---------- */
+
+.add-user-form h2,
+.users-heading {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-lg);
+}
+
+.add-user-form form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.add-user-form .error,
+.add-user-form .muted {
+  margin: var(--space-3) 0 0;
+}
+
+.users-heading {
+  margin-top: var(--space-5);
+}
+
+.admin-tag {
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}

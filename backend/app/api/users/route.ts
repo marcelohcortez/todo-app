@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserId, unauthorized } from "@/lib/auth";
-import { createUser, currentUser } from "@/lib/users";
+import { createUser, currentUser, listUsers } from "@/lib/users";
+
+// GET /api/users  (admin only): every account with its email and when it was added.
+export async function GET() {
+  const userId = await getCurrentUserId();
+  if (!userId) return unauthorized();
+  if (!(await currentUser(userId))?.isAdmin) {
+    return NextResponse.json({ error: "Only the admin can see users" }, { status: 403 });
+  }
+  return NextResponse.json({ users: await listUsers() });
+}
 
 // POST /api/users  { email, password }  (admin only)
 // Creates an account for someone else. The admin stays signed in as themselves.

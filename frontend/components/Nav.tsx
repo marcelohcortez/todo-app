@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import AddUserSheet from "./AddUserSheet";
+import OptionsMenu from "./OptionsMenu";
 
-type Current = "active" | "done" | "notes" | "settings";
+type Current = "active" | "done" | "notes" | "settings" | "users";
 
 const ICON = {
   home: <path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
@@ -62,8 +62,12 @@ export default function Nav({ current, onAddTask, onAddNote }: Props) {
   const [chooseOpen, setChooseOpen] = useState(false);
   // The Options button (top bar on desktop, bottom bar on phones): Settings, Add user (admin only), Log out.
   const [optionsOpen, setOptionsOpen] = useState(false);
-  const [addUserOpen, setAddUserOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+
+  function openAddUser() {
+    setOptionsOpen(false);
+    router.push("/users");
+  }
 
   useEffect(() => {
     fetch("/api/auth/me", { cache: "no-store" })
@@ -73,17 +77,16 @@ export default function Nav({ current, onAddTask, onAddNote }: Props) {
   }, []);
 
   useEffect(() => {
-    if (!chooseOpen && !optionsOpen && !addUserOpen) return;
+    if (!chooseOpen && !optionsOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setChooseOpen(false);
         setOptionsOpen(false);
-        setAddUserOpen(false);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [chooseOpen, optionsOpen, addUserOpen]);
+  }, [chooseOpen, optionsOpen]);
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -120,9 +123,26 @@ export default function Nav({ current, onAddTask, onAddNote }: Props) {
           </Link>
         </nav>
         <div className="nav-right">
-          <button className="ghost" type="button" onClick={() => setOptionsOpen(true)} aria-haspopup="dialog">
-            Options
-          </button>
+          <div className="options-anchor">
+            <button
+              className="ghost"
+              type="button"
+              onClick={() => setOptionsOpen((open) => !open)}
+              aria-haspopup="menu"
+              aria-expanded={optionsOpen}
+            >
+              Options
+            </button>
+            {optionsOpen && (
+              <OptionsMenu
+                variant="dropdown"
+                isAdmin={isAdmin}
+                onClose={() => setOptionsOpen(false)}
+                onAddUser={openAddUser}
+                onLogout={logout}
+              />
+            )}
+          </div>
         </div>
       </header>
 
@@ -154,44 +174,14 @@ export default function Nav({ current, onAddTask, onAddNote }: Props) {
       )}
 
       {optionsOpen && (
-        <div className="sheet-backdrop" onClick={() => setOptionsOpen(false)}>
-          <div
-            className="sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Options"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="sheet-head">
-              <h2>Options</h2>
-              <button className="ghost" type="button" onClick={() => setOptionsOpen(false)}>
-                Cancel
-              </button>
-            </div>
-            <div className="choose">
-              <Link href="/settings" className="button-link" onClick={() => setOptionsOpen(false)}>
-                Settings
-              </Link>
-              {isAdmin && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOptionsOpen(false);
-                    setAddUserOpen(true);
-                  }}
-                >
-                  Add user
-                </button>
-              )}
-              <button type="button" className="ghost danger" onClick={logout}>
-                Log out
-              </button>
-            </div>
-          </div>
-        </div>
+        <OptionsMenu
+          variant="sheet"
+          isAdmin={isAdmin}
+          onClose={() => setOptionsOpen(false)}
+          onAddUser={openAddUser}
+          onLogout={logout}
+        />
       )}
-
-      {addUserOpen && <AddUserSheet onClose={() => setAddUserOpen(false)} />}
 
       <nav className="bottom-bar" aria-label="Main">
         <Link href="/" className={current === "active" ? "active" : ""} aria-label="To do">

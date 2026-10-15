@@ -27,6 +27,22 @@ export async function currentUser(userId: string): Promise<{ email: string; isAd
   return { email: user.email, isAdmin: user.email === adminEmail() };
 }
 
+export interface UserSummary {
+  email: string;
+  createdAt: string;
+  isAdmin: boolean;
+}
+
+/** Every account, oldest first. Only email and creation date; never the password or token hashes. */
+export async function listUsers(): Promise<UserSummary[]> {
+  const docs = await (await usersCollection())
+    .find({}, { projection: { email: 1, createdAt: 1 } })
+    .sort({ createdAt: 1 })
+    .toArray();
+  const admin = adminEmail();
+  return docs.map((d) => ({ email: d.email, createdAt: d.createdAt.toISOString(), isAdmin: d.email === admin }));
+}
+
 /** Creates an account with a hashed password. Throws with code 11000 if the email is already taken. */
 export async function createUser(email: string, password: string): Promise<void> {
   const passwordHash = await bcrypt.hash(password, 12);
