@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import Nav from "./Nav";
 import NoteField from "./NoteField";
+import { useLiveRefresh } from "./useLiveRefresh";
 import type { Note } from "@/lib/types";
 
 function fmt(iso: string): string {
@@ -40,6 +41,8 @@ export default function NotesApp() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useLiveRefresh(load);
 
   // "New note" from another page links to /notes?add=1, which opens the note sheet here.
   useEffect(() => {

@@ -1,6 +1,7 @@
 import { ObjectId } from "mongodb";
 import type { Collection, Filter } from "mongodb";
 import { getDb } from "./mongodb";
+import { notifyChanged } from "./realtime";
 import { PRIORITIES, PRIORITY_RANK } from "./types";
 import type { Priority, Task, TaskDoc } from "./types";
 
@@ -77,6 +78,7 @@ export async function createTask(userId: string, title: string, priority: Priori
     updatedAt: now,
   };
   await (await tasksCollection()).insertOne(doc);
+  await notifyChanged(userId);
   return toTask(doc);
 }
 
@@ -97,7 +99,9 @@ export async function updateTask(userId: string, id: string, patch: TaskPatch): 
     { $set: set },
     { returnDocument: "after" }
   );
-  return doc ? toTask(doc) : null;
+  if (!doc) return null;
+  await notifyChanged(userId);
+  return toTask(doc);
 }
 
 export async function deleteTask(userId: string, id: string): Promise<boolean> {
@@ -106,5 +110,7 @@ export async function deleteTask(userId: string, id: string): Promise<boolean> {
     _id: new ObjectId(id),
     userId: new ObjectId(userId),
   });
-  return res.deletedCount === 1;
+  if (res.deletedCount !== 1) return false;
+  await notifyChanged(userId);
+  return true;
 }

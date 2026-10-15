@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import AddTaskForm from "./AddTaskForm";
 import Nav from "./Nav";
+import { useLiveRefresh } from "./useLiveRefresh";
 import { PRIORITIES } from "@/lib/types";
 import type { Priority, Task } from "@/lib/types";
 
@@ -47,6 +48,8 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  useLiveRefresh(load);
 
   // The "+" on other pages links to /?add=1, which opens the add sheet here.
   useEffect(() => {

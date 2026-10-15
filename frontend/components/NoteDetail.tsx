@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import Nav from "./Nav";
 import NoteField from "./NoteField";
+import { useLiveRefresh } from "./useLiveRefresh";
 import type { Note } from "@/lib/types";
 
 function fmt(iso: string): string {
@@ -29,7 +30,7 @@ export default function NoteDetail({ id }: { id: string }) {
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
 
-  useEffect(() => {
+  const loadNote = useCallback(() => {
     fetch(`/api/notes/${id}`, { cache: "no-store" }).then(async (res) => {
       if (res.status === 401) {
         window.location.href = "/login";
@@ -45,7 +46,16 @@ export default function NoteDetail({ id }: { id: string }) {
     });
   }, [id]);
 
+  useEffect(() => {
+    loadNote();
+  }, [loadNote]);
+
   const dirty = note !== null && text.trim() !== note.body;
+
+  // Show changes made on another device, but never replace text that has not been saved yet.
+  useLiveRefresh(() => {
+    if (!dirty) loadNote();
+  });
 
   function save(e: FormEvent) {
     e.preventDefault();

@@ -1,6 +1,7 @@
 import { ObjectId } from "mongodb";
 import type { Collection, Filter } from "mongodb";
 import { getDb } from "./mongodb";
+import { notifyChanged } from "./realtime";
 import type { Note, NoteDeletionDoc, NoteDoc } from "./types";
 
 // Tombstones older than this are dropped. A vault that has not synced for this long rebuilds from scratch.
@@ -49,6 +50,7 @@ export async function createNote(userId: string, body: string): Promise<Note> {
   const now = new Date();
   const doc: NoteDoc = { _id: new ObjectId(), userId: new ObjectId(userId), body, createdAt: now, updatedAt: now };
   await (await notesCollection()).insertOne(doc);
+  await notifyChanged(userId);
   return toNote(doc);
 }
 
@@ -59,7 +61,9 @@ export async function updateNote(userId: string, id: string, body: string): Prom
     { $set: { body, updatedAt: new Date() } },
     { returnDocument: "after" }
   );
-  return doc ? toNote(doc) : null;
+  if (!doc) return null;
+  await notifyChanged(userId);
+  return toNote(doc);
 }
 
 export async function deleteNote(userId: string, id: string): Promise<boolean> {
@@ -68,6 +72,7 @@ export async function deleteNote(userId: string, id: string): Promise<boolean> {
   const res = await (await notesCollection()).deleteOne({ _id: new ObjectId(id), userId: uid });
   if (res.deletedCount !== 1) return false;
   await (await deletionsCollection()).insertOne({ _id: new ObjectId(), userId: uid, noteId: id, deletedAt: new Date() });
+  await notifyChanged(userId);
   return true;
 }
 
