@@ -36,3 +36,27 @@ export interface UserDoc {
   mcpTokenHash?: string;
   createdAt: Date;
 }
+
+// A note has no title and no priority. Its body is the text, typed or transcribed by voice.
+export interface Note {
+  id: string;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NoteDoc {
+  _id: ObjectId;
+  userId: ObjectId;
+  body: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Written when a note is deleted. Holds no note content, only what the vault needs to remove it.
+export interface NoteDeletionDoc {
+  _id: ObjectId;
+  userId: ObjectId;
+  noteId: string;
+  deletedAt: Date;
+}

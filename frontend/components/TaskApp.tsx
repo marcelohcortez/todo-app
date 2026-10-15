@@ -124,7 +124,7 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
 
   return (
     <>
-      <Nav current={view} onAdd={view === "active" ? () => setAddOpen(true) : undefined} />
+      <Nav current={view} onAddTask={view === "active" ? () => setAddOpen(true) : undefined} />
 
       {view === "active" && addOpen && (
         <div className="sheet-backdrop" onClick={() => setAddOpen(false)}>

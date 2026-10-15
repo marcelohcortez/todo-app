@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
-type Current = "active" | "done" | "settings";
+type Current = "active" | "done" | "notes" | "settings";
 
 const ICON = {
   home: <path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
@@ -11,6 +12,12 @@ const ICON = {
     <>
       <circle cx="12" cy="12" r="9" />
       <path d="M8 12.5l2.5 2.5L16 9.5" />
+    </>
+  ),
+  notes: (
+    <>
+      <path d="M6 3h9l4 4v14H6z" />
+      <path d="M9 12h6M9 16h6M9 8h3" />
     </>
   ),
   plus: <path d="M12 5v14M5 12h14" />,
@@ -33,10 +40,27 @@ function Icon({ children }: { children: React.ReactNode }) {
   );
 }
 
+interface Props {
+  current: Current;
+  // Pages with an inline task form pass these to open their own add sheet. Other pages go to /?add=1 or /notes?add=1.
+  onAddTask?: () => void;
+  onAddNote?: () => void;
+}
+
 // Top navigation on desktop; the bottom bar replaces it on phones.
-// onAdd opens the add sheet on the To do page. Other pages send the user to /?add=1.
-export default function Nav({ current, onAdd }: { current: Current; onAdd?: () => void }) {
+// The bottom bar's + asks whether to add a task or a note.
+export default function Nav({ current, onAddTask, onAddNote }: Props) {
   const router = useRouter();
+  const [chooseOpen, setChooseOpen] = useState(false);
+
+  useEffect(() => {
+    if (!chooseOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setChooseOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [chooseOpen]);
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -44,9 +68,15 @@ export default function Nav({ current, onAdd }: { current: Current; onAdd?: () =
     router.refresh();
   }
 
-  function add() {
-    if (onAdd) onAdd();
-    else router.push("/?add=1");
+  function pick(kind: "task" | "note") {
+    setChooseOpen(false);
+    if (kind === "task") {
+      if (onAddTask) onAddTask();
+      else router.push("/?add=1");
+    } else {
+      if (onAddNote) onAddNote();
+      else router.push("/notes?add=1");
+    }
   }
 
   return (
@@ -60,6 +90,9 @@ export default function Nav({ current, onAdd }: { current: Current; onAdd?: () =
           <Link href="/done" className={current === "done" ? "active" : ""}>
             Done
           </Link>
+          <Link href="/notes" className={current === "notes" ? "active" : ""}>
+            Notes
+          </Link>
           <Link href="/settings" className={current === "settings" ? "active" : ""}>
             Settings
           </Link>
@@ -68,6 +101,33 @@ export default function Nav({ current, onAdd }: { current: Current; onAdd?: () =
           Log out
         </button>
       </header>
+
+      {chooseOpen && (
+        <div className="sheet-backdrop" onClick={() => setChooseOpen(false)}>
+          <div
+            className="sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Add"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sheet-head">
+              <h2>Add</h2>
+              <button className="ghost" type="button" onClick={() => setChooseOpen(false)}>
+                Cancel
+              </button>
+            </div>
+            <div className="choose">
+              <button type="button" onClick={() => pick("task")}>
+                New task
+              </button>
+              <button type="button" onClick={() => pick("note")}>
+                New note
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <nav className="bottom-bar" aria-label="Main">
         <Link href="/" className={current === "active" ? "active" : ""} aria-label="To do">
@@ -78,9 +138,13 @@ export default function Nav({ current, onAdd }: { current: Current; onAdd?: () =
           <Icon>{ICON.done}</Icon>
           <span>Done</span>
         </Link>
-        <button type="button" className="bottom-add" onClick={add} aria-label="Add a task">
+        <button type="button" className="bottom-add" onClick={() => setChooseOpen(true)} aria-label="Add a task or a note">
           <Icon>{ICON.plus}</Icon>
         </button>
+        <Link href="/notes" className={current === "notes" ? "active" : ""} aria-label="Notes">
+          <Icon>{ICON.notes}</Icon>
+          <span>Notes</span>
+        </Link>
         <Link href="/settings" className={current === "settings" ? "active" : ""} aria-label="Settings">
           <Icon>{ICON.settings}</Icon>
           <span>Settings</span>

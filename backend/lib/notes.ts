@@ -1,0 +1,103 @@
+import { ObjectId } from "mongodb";
+import type { Collection, Filter } from "mongodb";
+import { getDb } from "./mongodb";
+import type { Note, NoteDeletionDoc, NoteDoc } from "./types";
+
+// Tombstones older than this are dropped. A vault that has not synced for this long rebuilds from scratch.
+const TOMBSTONE_DAYS = 90;
+const MAX_BODY = 20000;
+
+/** Returns the trimmed body, or null if it is empty or too long. */
+export function cleanBody(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const t = value.trim();
+  return t.length === 0 || t.length > MAX_BODY ? null : t;
+}
+
+export function toNote(d: NoteDoc): Note {
+  return {
+    id: d._id.toHexString(),
+    body: d.body,
+    createdAt: d.createdAt.toISOString(),
+    updatedAt: d.updatedAt.toISOString(),
+  };
+}
+
+async function notesCollection(): Promise<Collection<NoteDoc>> {
+  return (await getDb()).collection<NoteDoc>("notes");
+}
+
+async function deletionsCollection(): Promise<Collection<NoteDeletionDoc>> {
+  return (await getDb()).collection<NoteDeletionDoc>("note_deletions");
+}
+
+export async function listNotes(userId: string): Promise<Note[]> {
+  const docs = await (await notesCollection())
+    .find({ userId: new ObjectId(userId) })
+    .sort({ createdAt: -1 })
+    .toArray();
+  return docs.map(toNote);
+}
+
+export async function getNote(userId: string, id: string): Promise<Note | null> {
+  if (!ObjectId.isValid(id)) return null;
+  const doc = await (await notesCollection()).findOne({ _id: new ObjectId(id), userId: new ObjectId(userId) });
+  return doc ? toNote(doc) : null;
+}
+
+export async function createNote(userId: string, body: string): Promise<Note> {
+  const now = new Date();
+  const doc: NoteDoc = { _id: new ObjectId(), userId: new ObjectId(userId), body, createdAt: now, updatedAt: now };
+  await (await notesCollection()).insertOne(doc);
+  return toNote(doc);
+}
+
+export async function updateNote(userId: string, id: string, body: string): Promise<Note | null> {
+  if (!ObjectId.isValid(id)) return null;
+  const doc = await (await notesCollection()).findOneAndUpdate(
+    { _id: new ObjectId(id), userId: new ObjectId(userId) },
+    { $set: { body, updatedAt: new Date() } },
+    { returnDocument: "after" }
+  );
+  return doc ? toNote(doc) : null;
+}
+
+export async function deleteNote(userId: string, id: string): Promise<boolean> {
+  if (!ObjectId.isValid(id)) return false;
+  const uid = new ObjectId(userId);
+  const res = await (await notesCollection()).deleteOne({ _id: new ObjectId(id), userId: uid });
+  if (res.deletedCount !== 1) return false;
+  await (await deletionsCollection()).insertOne({ _id: new ObjectId(), userId: uid, noteId: id, deletedAt: new Date() });
+  return true;
+}
+
+/**
+ * Notes added or edited since `since` (all notes when `since` is null), plus the ids deleted since then.
+ * `serverTime` is taken before the queries, so the next call starts from it and misses nothing.
+ */
+export async function changesSince(
+  userId: string,
+  since: Date | null
+): Promise<{ notes: Note[]; deleted: string[]; serverTime: string }> {
+  const serverTime = new Date();
+  const uid = new ObjectId(userId);
+  const purgeBefore = new Date(Date.now() - TOMBSTONE_DAYS * 24 * 60 * 60 * 1000);
+  await (await deletionsCollection()).deleteMany({ userId: uid, deletedAt: { $lt: purgeBefore } });
+
+  const noteFilter: Filter<NoteDoc> = { userId: uid };
+  const deletionFilter: Filter<NoteDeletionDoc> = { userId: uid };
+  if (since) {
+    noteFilter.updatedAt = { $gte: since };
+    deletionFilter.deletedAt = { $gte: since };
+  }
+
+  const [docs, deletions] = await Promise.all([
+    (await notesCollection()).find(noteFilter).sort({ createdAt: 1 }).toArray(),
+    since ? (await deletionsCollection()).find(deletionFilter).toArray() : Promise.resolve([]),
+  ]);
+  return {
+    notes: docs.map(toNote),
+    deleted: deletions.map((d) => d.noteId),
+    serverTime: serverTime.toISOString(),
+  };
+}

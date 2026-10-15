@@ -109,165 +109,122 @@ and lets you **Disconnect** one. Clicking **Revoke token** disconnects all of th
 Tools: `list_tasks`, `create_task`, `update_task`, `set_task_completed`, `delete_task`.
 Task objects include `createdAt` and `completedAt`.
 
-## Sync tasks to your vault (to implement later)
+## Sync tasks and notes to your vault (to implement later)
 
-Goal: copy your tasks into a Markdown note inside an Obsidian vault, so the vault can use them.
-Nothing in this section is implemented yet. It is the plan and the code to add.
+Nothing in this section is implemented yet, apart from the notes endpoint below, which the app already has.
+It is the plan for a script that copies your tasks and notes into an Obsidian vault. When you build it, the
+script goes in `scripts/sync-vault.mjs` and is run with Node.
 
-**How it works**
+**What the vault gets**
 
-1. `scripts/sync-vault.mjs` (below) signs in to the backend with `POST /api/auth/login` and
-   `{ "email", "password" }`. The backend answers with a `session` cookie.
-2. It calls `GET /api/tasks?status=all` with that cookie. The response is `{ "tasks": [...] }`. Each task has
-   `title`, `priority` (`high`, `medium` or `normal`), `completed`, `createdAt` and `completedAt`.
-3. It writes `<VAULT_DIR>/Tasks/To-do.md`, overwriting the file each time. The note is one-way: change
-   tasks in the app, not in the note.
+| File in the vault | What it holds | Who writes it |
+| ----------------- | ------------- | ------------- |
+| `Tasks/To-do.md` | Active and done tasks, grouped by priority | The script, on every run. Edits here are overwritten. |
+| `00Inbox/notes.md` | One block per note | The script only. Do not edit it by hand. |
 
-The script uses only Node built-ins, so it needs Node 18.14 or newer (for `Headers.getSetCookie`).
+Later, an AI will read `00Inbox/notes.md` and organise the notes inside the vault. That is outside this script.
 
-**Files to add**
+**How notes are written to `00Inbox/notes.md`**
 
-- `scripts/sync-vault.mjs`: the script below.
-- `scripts/.env.sync`: your settings. Git-ignored, so add `scripts/.env.sync` to `.gitignore`.
+Each note sits between two marker lines that carry its id:
 
-`scripts/.env.sync` (fill in your values):
+```markdown
+<!-- note:665f1c2a9b7e4d3a2c1b0e9f -->
+### 2026-10-15 14:03
+*Edited 2026-10-16 09:12*
+
+Buy milk and check the boiler.
+<!-- /note:665f1c2a9b7e4d3a2c1b0e9f -->
+```
+
+The heading uses `createdAt`. The `*Edited ...*` line appears only when `updatedAt` differs from `createdAt`.
+
+Each run should do only this:
+
+| What changed in the app | What the script does to `notes.md` |
+| ----------------------- | ---------------------------------- |
+| A new note | Adds its block at the end of the file |
+| An edited note | Replaces its block in place |
+| A deleted note | Removes its block |
+| Nothing | Writes nothing. If no block changed, the file is not written. |
+
+Blocks are matched by id, not by position. If the AI has moved a note out of the inbox, the script leaves it
+there unless that note changes in the app. Then it adds a new block to the inbox.
+
+**How the script should get changes**
+
+It signs in with `POST /api/auth/login` (`{ "email", "password" }`) and keeps the `session` cookie. Then:
+
+1. Read the last sync time from `scripts/.notes-sync.json` (`{ "since": "<ISO time>" }`). If the file is missing, use no `since`.
+2. Call `GET /api/notes/sync?since=<since>`. It returns `{ notes, deleted, serverTime }`.
+3. Apply the rules above to `00Inbox/notes.md`.
+4. Write `serverTime` to `scripts/.notes-sync.json`, but only after the file has been written. A failed run is then retried in full next time.
+
+`scripts/.notes-sync.json` should be git-ignored, and so should `scripts/.env.sync`.
+
+**Settings**
+
+`scripts/.env.sync`, to create when you build it:
 
 ```env
-# Backend URL from Vercel (no trailing slash)
+# Backend URL from Vercel (no trailing slash). Use the backend, not the frontend.
 TODO_API_URL=https://YOUR-BACKEND.vercel.app
 # The login you use in the app
 TODO_EMAIL=you@example.com
 TODO_PASSWORD=your-password
-# Vault folder. The note goes to <VAULT_DIR>\Tasks\To-do.md
+# Your vault folder. Tasks go to <VAULT_DIR>\Tasks\To-do.md and notes to <VAULT_DIR>\00Inbox\notes.md
 VAULT_DIR=C:\Path\To\MyVault
 ```
 
-`scripts/sync-vault.mjs`:
+The script should use only Node built-ins, so it needs Node 18.14 or newer (for `Headers.getSetCookie`).
 
-```js
-import { readFile, writeFile, mkdir } from "node:fs/promises";
-import { existsSync } from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+**Scheduling on Windows (when it exists)**
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const ENV_FILE = path.join(here, ".env.sync");
+1. Open **Task Scheduler** → **Create Basic Task**.
+2. Trigger: **Daily** or **When I log on**. To repeat, edit the trigger and set **Repeat task every** to 1 hour.
+3. Action: **Start a program**.
+4. Program/script: the full path to `node.exe` (run `where node` to find it).
+5. Add arguments: `<path to repo>\scripts\sync-vault.mjs`
+6. Start in: `<path to repo>\scripts`
 
-// Reads KEY=VALUE lines from scripts/.env.sync. Real environment variables win.
-async function loadEnvFile() {
-  if (!existsSync(ENV_FILE)) return;
-  for (const line of (await readFile(ENV_FILE, "utf8")).split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eq = trimmed.indexOf("=");
-    if (eq === -1) continue;
-    const key = trimmed.slice(0, eq).trim();
-    if (process.env[key] === undefined) process.env[key] = trimmed.slice(eq + 1).trim();
-  }
-}
+**Deleted notes and the 90-day window**
 
-function requireEnv(name) {
-  const value = process.env[name];
-  if (!value) throw new Error(`Missing ${name}. Set it in scripts/.env.sync.`);
-  return value;
-}
+When a note is deleted in the app, its text is removed from the database at once. The database keeps only the
+deletion record (note id and time) for 90 days, so the vault can remove the block. A vault that has not synced
+for more than 90 days misses the deletions from that period, and their blocks stay in `notes.md`. Sync at least
+once every 90 days.
 
-const PRIORITY_ORDER = ["high", "medium", "normal"];
-const PRIORITY_LABEL = { high: "High", medium: "Medium", normal: "Normal" };
-const day = (iso) => (iso ? iso.slice(0, 10) : "");
+**Starting the notes copy again from scratch**
 
-function renderNote(tasks, syncedAt) {
-  const active = tasks.filter((t) => !t.completed);
-  const done = tasks.filter((t) => t.completed);
-  const lines = [
-    "# To-do",
-    "",
-    `> Generated by scripts/sync-vault.mjs at ${syncedAt}. Edits here are overwritten on the next sync. Change tasks in the app.`,
-    "",
-    `Active: ${active.length} · Done: ${done.length}`,
-    "",
-    "## Active",
-    "",
-  ];
-  for (const priority of PRIORITY_ORDER) {
-    const group = active.filter((t) => t.priority === priority);
-    if (group.length === 0) continue;
-    lines.push(`### ${PRIORITY_LABEL[priority]}`, "");
-    for (const t of group) lines.push(`- [ ] ${t.title} (added ${day(t.createdAt)})`);
-    lines.push("");
-  }
-  if (active.length === 0) lines.push("No active tasks.", "");
-  lines.push("## Done", "");
-  for (const t of done) lines.push(`- [x] ${t.title} (done ${day(t.completedAt)})`);
-  if (done.length === 0) lines.push("No finished tasks yet.");
-  return lines.join("\n") + "\n";
-}
+Delete `scripts/.notes-sync.json`. The next run fetches every note. Blocks that exist are updated in place, and
+missing notes are added to the bottom. A note the AI has moved out of the inbox is added again, so you may get a
+duplicate. Only do this if `notes.md` has been lost.
 
-async function signIn(apiUrl, email, password) {
-  const res = await fetch(`${apiUrl}/api/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-  if (!res.ok) throw new Error(`Sign-in failed (HTTP ${res.status}). Check TODO_EMAIL and TODO_PASSWORD.`);
-  const setCookies = res.headers.getSetCookie?.() ?? [res.headers.get("set-cookie") ?? ""];
-  const session = setCookies.map((c) => c.split(";")[0]).find((c) => c.startsWith("session="));
-  if (!session) throw new Error("Sign-in worked but no session cookie was returned.");
-  return session;
-}
+**Notes API (used by the script)**
 
-async function fetchTasks(apiUrl, cookie) {
-  const res = await fetch(`${apiUrl}/api/tasks?status=all`, { headers: { Cookie: cookie } });
-  if (!res.ok) throw new Error(`Could not load tasks (HTTP ${res.status}).`);
-  return (await res.json()).tasks;
-}
+| Method and path | What it does |
+| --------------- | ------------ |
+| `GET /api/notes` | All your notes, newest first |
+| `POST /api/notes` | Create a note: `{ "body": "..." }` |
+| `GET /api/notes/:id` | One note |
+| `PATCH /api/notes/:id` | Edit a note: `{ "body": "..." }` |
+| `DELETE /api/notes/:id` | Delete a note and record the deletion |
+| `GET /api/notes/sync?since=<time>` | Notes added or edited since `<time>`, and the ids deleted since then. Without `since`, every note. |
 
-async function main() {
-  await loadEnvFile();
-  const apiUrl = requireEnv("TODO_API_URL").replace(/\/+$/, "");
-  const cookie = await signIn(apiUrl, requireEnv("TODO_EMAIL"), requireEnv("TODO_PASSWORD"));
-  const tasks = await fetchTasks(apiUrl, cookie);
-
-  const outDir = path.join(requireEnv("VAULT_DIR"), "Tasks");
-  const outFile = path.join(outDir, "To-do.md");
-  await mkdir(outDir, { recursive: true });
-  await writeFile(outFile, renderNote(tasks, new Date().toLocaleString("en-GB", { hour12: false })), "utf8");
-  console.log(`Synced ${tasks.length} tasks to ${outFile}`);
-}
-
-main().catch((err) => {
-  console.error(`Sync failed: ${err.message}`);
-  process.exitCode = 1;
-});
-```
-
-**Steps**
-
-1. Create `scripts/sync-vault.mjs` and `scripts/.env.sync` as above, and add `scripts/.env.sync` to `.gitignore`.
-2. Test once from the repo root: `node scripts/sync-vault.mjs`. Expected output:
-   `Synced N tasks to ...\Tasks\To-do.md`. Open the note in Obsidian to check it.
-3. Schedule it on Windows: **Task Scheduler** → **Create Basic Task**.
-   - Trigger: **Daily** (or **When I log on**). To repeat, edit the trigger and set **Repeat task every** to 1 hour.
-   - Action: **Start a program**.
-   - Program/script: the full path to `node.exe` (run `where node` to find it).
-   - Add arguments: `<path to repo>\scripts\sync-vault.mjs`
-   - Start in: `<path to repo>\scripts`
-
-**Troubleshooting**
-
-- `Sign-in failed (HTTP 401)`: wrong `TODO_EMAIL` or `TODO_PASSWORD`.
-- `Missing TODO_...`: the value is missing from `scripts/.env.sync`.
-- Network errors: `TODO_API_URL` must be the **backend** URL, not the frontend.
+Notes have no title and no priority. Each has `createdAt` and `updatedAt`. Audio is not stored: the text is typed,
+or transcribed in the browser by the microphone button.
 
 ## Notes
 
-- On phones, a bottom bar gives quick access to To do, Done, Settings and Log out. The centre **+** opens
-  the new-task pop-up (text, microphone, priority and Add). On desktop, the top menu and the inline
-  form are used instead.
-- Voice input: tap the microphone in the new-task field and speak. The words fill the field so you can
-  edit them before adding. It uses the browser's speech recognition, so Chrome on Android works best.
+- On phones, a bottom bar gives quick access to To do, Done, Notes, Settings and Log out. The centre **+**
+  asks whether to add a **Task** (the pop-up with text, microphone, priority and Add) or a **Note**. On
+  desktop, the top menu and the inline forms are used instead.
+- Notes have no title and no priority. Each one has the date it was added, and the date it was edited if
+  it changed. The **Notes** page lists them. Open one to read, edit or delete it.
+- Voice input: tap the microphone in the task or note field and speak. The words fill the field so you can
+  edit them before saving. It uses the browser's speech recognition, so Chrome on Android works best.
   The browser sends the audio to its speech service (Google, in Chrome). The button is hidden in browsers
-  without speech recognition.
+  without speech recognition. The audio itself is not stored, only the text.
 
 - Sessions are signed JWTs in an httpOnly cookie that lasts one year. Changing `AUTH_SECRET` logs everyone out.
   The secret lives only in the backend project.

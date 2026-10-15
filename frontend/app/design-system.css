@@ -103,7 +103,8 @@ code {
 
 /* 16px inputs stop iOS from zooming in on focus. */
 input,
-select {
+select,
+textarea {
   font-size: var(--text-md);
   padding: 12px var(--space-3);
   border: 1px solid var(--border);
