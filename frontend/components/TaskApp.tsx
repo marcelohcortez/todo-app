@@ -1,11 +1,13 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import AddTaskForm from "./AddTaskForm";
+import AddTaskForm, { NEW_BOARD } from "./AddTaskForm";
+import BoardPills, { ALL, NO_BOARD } from "./BoardPills";
+import NewBoardForm from "./NewBoardForm";
 import Nav from "./Nav";
 import { useLiveRefresh } from "./useLiveRefresh";
 import { PRIORITIES } from "@/lib/types";
-import type { Priority, Task } from "@/lib/types";
+import type { Board, Priority, Task } from "@/lib/types";
 
 const LABEL: Record<Priority, string> = { high: "High", medium: "Medium", normal: "Normal" };
 
@@ -25,24 +27,37 @@ async function api(url: string, init: RequestInit = {}): Promise<unknown> {
 
 export default function TaskApp({ view }: { view: "active" | "done" }) {
   const [tasks, setTasks] = useState<Task[] | null>(null);
+  const [boards, setBoards] = useState<Board[]>([]);
   const [error, setError] = useState("");
+
+  // Board filter: ALL, NO_BOARD, or a board id.
+  const [filter, setFilter] = useState(ALL);
 
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState<Priority>("normal");
+  // The board chosen in the add form. Empty until the user picks one, then the first board is used.
+  const [boardChoice, setBoardChoice] = useState("");
+  const [newBoardName, setNewBoardName] = useState("");
   const [addOpen, setAddOpen] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editPriority, setEditPriority] = useState<Priority>("normal");
+  const [editBoardId, setEditBoardId] = useState("");
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/tasks?status=${view}`, { cache: "no-store" });
-    if (res.status === 401) {
+    const [tasksRes, boardsRes] = await Promise.all([
+      fetch(`/api/tasks?status=${view}`, { cache: "no-store" }),
+      fetch("/api/boards", { cache: "no-store" }),
+    ]);
+    if (tasksRes.status === 401 || boardsRes.status === 401) {
       window.location.href = "/login";
       return;
     }
-    const data = await res.json();
+    const data = await tasksRes.json();
+    const boardData = await boardsRes.json();
     setTasks(data.tasks);
+    setBoards(boardData.boards);
   }, [view]);
 
   useEffect(() => {
@@ -68,14 +83,32 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [addOpen]);
 
-  async function run(action: () => Promise<unknown>) {
+  // Resolves to true when the action succeeded. Errors are shown on the page.
+  async function run(action: () => Promise<unknown>): Promise<boolean> {
     setError("");
     try {
       await action();
       await load();
+      return true;
     } catch (err) {
       setError((err as Error).message);
+      return false;
     }
+  }
+
+  // If the user has not picked a board, the first board is used. With no boards yet, the form offers "Create new board".
+  const addBoardId =
+    boardChoice === NEW_BOARD || boards.some((b) => b.id === boardChoice)
+      ? boardChoice
+      : (boards[0]?.id ?? NEW_BOARD);
+
+  function createBoard(name: string): Promise<boolean> {
+    return run(async () => {
+      const data = (await api("/api/boards", { method: "POST", body: JSON.stringify({ name }) })) as {
+        board: Board;
+      };
+      setBoardChoice(data.board.id);
+    });
   }
 
   function addTask(e: FormEvent) {
@@ -83,9 +116,23 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
     const t = title.trim();
     if (!t) return;
     run(async () => {
-      await api("/api/tasks", { method: "POST", body: JSON.stringify({ title: t, priority }) });
+      let boardId = addBoardId;
+      if (boardId === NEW_BOARD) {
+        const name = newBoardName.trim();
+        if (!name) throw new Error("Type a name for the new board");
+        const data = (await api("/api/boards", { method: "POST", body: JSON.stringify({ name }) })) as {
+          board: Board;
+        };
+        boardId = data.board.id;
+      }
+      await api("/api/tasks", {
+        method: "POST",
+        body: JSON.stringify({ title: t, priority, boardId }),
+      });
       setTitle("");
       setPriority("normal");
+      setNewBoardName("");
+      setBoardChoice(boardId);
       setAddOpen(false);
     });
   }
@@ -108,6 +155,7 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
     setEditingId(task.id);
     setEditTitle(task.title);
     setEditPriority(task.priority);
+    setEditBoardId(task.boardId ?? "");
   }
 
   function saveEdit(id: string) {
@@ -116,11 +164,20 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
     run(async () => {
       await api(`/api/tasks/${id}`, {
         method: "PATCH",
-        body: JSON.stringify({ title: t, priority: editPriority }),
+        body: JSON.stringify({ title: t, priority: editPriority, boardId: editBoardId || null }),
       });
       setEditingId(null);
     });
   }
+
+  // The list the pills choose from. The filter is applied here, on the tasks already loaded.
+  const visible = (tasks ?? []).filter((t) => {
+    if (filter === ALL) return true;
+    if (filter === NO_BOARD) return t.boardId === null;
+    return t.boardId === filter;
+  });
+
+  const boardName = (id: string | null) => boards.find((b) => b.id === id)?.name;
 
   const emptyText =
     view === "active" ? "Nothing to do. Add a task above." : "No completed tasks yet.";
@@ -151,6 +208,11 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
               onTitleChange={setTitle}
               priority={priority}
               onPriorityChange={setPriority}
+              boards={boards}
+              boardId={addBoardId}
+              onBoardChange={setBoardChoice}
+              newBoardName={newBoardName}
+              onNewBoardNameChange={setNewBoardName}
               onSubmit={addTask}
               onError={setError}
             />
@@ -160,6 +222,8 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
       )}
 
       <main className="container">
+        {view === "active" && <NewBoardForm onCreate={createBoard} />}
+
         {view === "active" && (
           <AddTaskForm
             variant="inline"
@@ -167,6 +231,11 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
             onTitleChange={setTitle}
             priority={priority}
             onPriorityChange={setPriority}
+            boards={boards}
+            boardId={addBoardId}
+            onBoardChange={setBoardChoice}
+            newBoardName={newBoardName}
+            onNewBoardNameChange={setNewBoardName}
             onSubmit={addTask}
             onError={setError}
           />
@@ -174,13 +243,19 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
 
         {error && <p className="error">{error}</p>}
 
+        {tasks !== null && (
+          <BoardPills boards={boards} tasks={tasks} value={filter} onChange={setFilter} />
+        )}
+
         {tasks === null ? (
           <p className="muted">Loading…</p>
         ) : tasks.length === 0 ? (
           <p className="muted">{emptyText}</p>
+        ) : visible.length === 0 ? (
+          <p className="muted">No tasks on this board.</p>
         ) : (
           <ul className="list">
-            {tasks.map((task) =>
+            {visible.map((task) =>
               editingId === task.id ? (
                 <li key={task.id} className="item editing">
                   <div className="edit-row">
@@ -191,6 +266,18 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
                       aria-label="Edit task title"
                       autoFocus
                     />
+                    <select
+                      value={editBoardId}
+                      onChange={(e) => setEditBoardId(e.target.value)}
+                      aria-label="Edit board"
+                    >
+                      <option value="">No board</option>
+                      {boards.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name}
+                        </option>
+                      ))}
+                    </select>
                     <select
                       value={editPriority}
                       onChange={(e) => setEditPriority(e.target.value as Priority)}
@@ -222,6 +309,7 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
                   <div className="body">
                     <span className="title">{task.title}</span>
                     <div className="meta">
+                      {boardName(task.boardId) && <span className="board-tag">{boardName(task.boardId)}</span>}
                       <span className={`badge ${task.priority}`}>{LABEL[task.priority]}</span>
                       <span>Added {fmt(task.createdAt)}</span>
                       {task.completedAt && <span>· Completed {fmt(task.completedAt)}</span>}

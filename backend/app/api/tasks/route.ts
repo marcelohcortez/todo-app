@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserId, unauthorized } from "@/lib/auth";
+import { boardBelongsToUser } from "@/lib/boards";
 import { cleanTitle, createTask, isPriority, isStatusFilter, listTasks } from "@/lib/tasks";
 
 // GET /api/tasks?status=active|done|all
@@ -14,7 +15,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ tasks: await listTasks(userId, status) });
 }
 
-// POST /api/tasks  { title, priority? }
+// POST /api/tasks  { title, priority?, boardId? }
 export async function POST(req: NextRequest) {
   const userId = await getCurrentUserId();
   if (!userId) return unauthorized();
@@ -28,7 +29,11 @@ export async function POST(req: NextRequest) {
   if (!isPriority(priority)) {
     return NextResponse.json({ error: "Invalid priority" }, { status: 400 });
   }
+  const boardId = body?.boardId ?? null;
+  if (boardId !== null && !(await boardBelongsToUser(userId, boardId))) {
+    return NextResponse.json({ error: "Board not found" }, { status: 400 });
+  }
 
-  const task = await createTask(userId, title, priority);
+  const task = await createTask(userId, title, priority, boardId);
   return NextResponse.json({ task }, { status: 201 });
 }

@@ -11,11 +11,20 @@ export interface Note {
   updatedAt: string;
 }
 
+// Shape returned by the backend API. A board groups tasks, for example "Work".
+export interface Board {
+  id: string;
+  name: string;
+  createdAt: string;
+}
+
 // Shape returned by the backend API.
 export interface Task {
   id: string;
   title: string;
   priority: Priority;
+  // Null for tasks without a board.
+  boardId: string | null;
   completed: boolean;
   createdAt: string;
   completedAt: string | null;

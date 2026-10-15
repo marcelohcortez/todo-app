@@ -10,6 +10,8 @@ export type StatusFilter = "active" | "done" | "all";
 export interface TaskPatch {
   title?: string;
   priority?: Priority;
+  // A board id, or null to take the task off its board.
+  boardId?: string | null;
   completed?: boolean;
 }
 
@@ -33,6 +35,7 @@ export function toTask(d: TaskDoc): Task {
     id: d._id.toHexString(),
     title: d.title,
     priority: d.priority,
+    boardId: d.boardId ? d.boardId.toHexString() : null,
     completed: d.completed,
     createdAt: d.createdAt.toISOString(),
     completedAt: d.completedAt ? d.completedAt.toISOString() : null,
@@ -44,10 +47,19 @@ async function tasksCollection(): Promise<Collection<TaskDoc>> {
   return (await getDb()).collection<TaskDoc>("tasks");
 }
 
-export async function listTasks(userId: string, status: StatusFilter = "active"): Promise<Task[]> {
+/**
+ * `boardId` limits the list to one board. Pass null for tasks with no board, or leave it undefined for all tasks.
+ */
+export async function listTasks(
+  userId: string,
+  status: StatusFilter = "active",
+  boardId?: string | null
+): Promise<Task[]> {
   const filter: Filter<TaskDoc> = { userId: new ObjectId(userId) };
   if (status === "active") filter.completed = false;
   if (status === "done") filter.completed = true;
+  if (boardId === null) filter.boardId = null;
+  else if (boardId !== undefined) filter.boardId = new ObjectId(boardId);
 
   const docs = await (await tasksCollection()).find(filter).toArray();
 
@@ -65,13 +77,19 @@ export async function listTasks(userId: string, status: StatusFilter = "active")
   return docs.map(toTask);
 }
 
-export async function createTask(userId: string, title: string, priority: Priority): Promise<Task> {
+export async function createTask(
+  userId: string,
+  title: string,
+  priority: Priority,
+  boardId: string | null
+): Promise<Task> {
   const now = new Date();
   const doc: TaskDoc = {
     _id: new ObjectId(),
     userId: new ObjectId(userId),
     title,
     priority,
+    boardId: boardId ? new ObjectId(boardId) : null,
     completed: false,
     createdAt: now,
     completedAt: null,
@@ -89,6 +107,7 @@ export async function updateTask(userId: string, id: string, patch: TaskPatch): 
   const set: Partial<TaskDoc> = { updatedAt: now };
   if (patch.title !== undefined) set.title = patch.title;
   if (patch.priority !== undefined) set.priority = patch.priority;
+  if (patch.boardId !== undefined) set.boardId = patch.boardId ? new ObjectId(patch.boardId) : null;
   if (patch.completed !== undefined) {
     set.completed = patch.completed;
     set.completedAt = patch.completed ? now : null;

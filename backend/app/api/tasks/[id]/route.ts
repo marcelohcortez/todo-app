@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserId, unauthorized } from "@/lib/auth";
+import { boardBelongsToUser } from "@/lib/boards";
 import { cleanTitle, deleteTask, isPriority, updateTask } from "@/lib/tasks";
 import type { TaskPatch } from "@/lib/tasks";
 
-// PATCH /api/tasks/:id  { title?, priority?, completed? }
+// PATCH /api/tasks/:id  { title?, priority?, boardId?, completed? }
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await getCurrentUserId();
   if (!userId) return unauthorized();
@@ -24,6 +25,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       return NextResponse.json({ error: "Invalid priority" }, { status: 400 });
     }
     patch.priority = body.priority;
+  }
+  if (body.boardId !== undefined) {
+    // null takes the task off its board.
+    if (body.boardId !== null && !(await boardBelongsToUser(userId, body.boardId))) {
+      return NextResponse.json({ error: "Board not found" }, { status: 400 });
+    }
+    patch.boardId = body.boardId;
   }
   if (body.completed !== undefined) {
     if (typeof body.completed !== "boolean") {

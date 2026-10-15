@@ -106,8 +106,10 @@ and lets you **Disconnect** one. Clicking **Revoke token** disconnects all of th
    }
    ```
 
-Tools: `list_tasks`, `create_task`, `update_task`, `set_task_completed`, `delete_task`.
-Task objects include `createdAt` and `completedAt`.
+Tools: `list_boards`, `list_tasks`, `create_task`, `update_task`, `set_task_completed`, `delete_task`.
+Task objects include `boardId`, `createdAt` and `completedAt`. `list_boards` returns each board's name and
+task counts (active, done and total). `list_tasks` takes `boardId` (or `"none"` for tasks without a board),
+and `create_task` and `update_task` take `boardId`.
 
 ## Sync tasks and notes to your vault (to implement later)
 

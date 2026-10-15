@@ -79,9 +79,13 @@
 
 .add {
   display: grid;
-  grid-template-columns: 1fr 140px auto;
+  grid-template-columns: 1fr 150px 120px auto;
   gap: 10px;
   margin-bottom: 22px;
+}
+
+.add .new-board-name {
+  grid-column: 1 / -1;
 }
 
 @media (max-width: 520px) {
@@ -92,6 +96,61 @@
   .add .input-wrap {
     grid-column: 1 / -1;
   }
+}
+
+/* ---------- boards: the "+ New board" control, its form, and the filter pills ---------- */
+
+.board-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-2);
+}
+
+.board-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.board-form input {
+  flex: 1 1 200px;
+}
+
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.pill {
+  min-height: 34px;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.board-tag {
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .input-wrap {
@@ -204,7 +263,7 @@
 
 .edit-row {
   display: grid;
-  grid-template-columns: 1fr 130px;
+  grid-template-columns: 1fr 130px 110px;
   gap: var(--space-2);
   width: 100%;
 }

@@ -3,9 +3,12 @@
 import { FormEvent, useRef } from "react";
 import MicButton from "./MicButton";
 import { PRIORITIES } from "@/lib/types";
-import type { Priority } from "@/lib/types";
+import type { Board, Priority } from "@/lib/types";
 
 const LABEL: Record<Priority, string> = { high: "High", medium: "Medium", normal: "Normal" };
+
+// Value of the board select's "Create new board" option.
+export const NEW_BOARD = "__new__";
 
 interface Props {
   // "inline" is the row on the To do page; "sheet" is the pop-up used on mobile.
@@ -14,6 +17,12 @@ interface Props {
   onTitleChange: (value: string) => void;
   priority: Priority;
   onPriorityChange: (value: Priority) => void;
+  boards: Board[];
+  // A board id, or NEW_BOARD to create one with the task.
+  boardId: string;
+  onBoardChange: (value: string) => void;
+  newBoardName: string;
+  onNewBoardNameChange: (value: string) => void;
   onSubmit: (e: FormEvent) => void;
   onError: (message: string) => void;
   autoFocus?: boolean;
@@ -25,6 +34,11 @@ export default function AddTaskForm({
   onTitleChange,
   priority,
   onPriorityChange,
+  boards,
+  boardId,
+  onBoardChange,
+  newBoardName,
+  onNewBoardNameChange,
   onSubmit,
   onError,
   autoFocus = false,
@@ -51,6 +65,14 @@ export default function AddTaskForm({
           onError={onError}
         />
       </div>
+      <select value={boardId} onChange={(e) => onBoardChange(e.target.value)} aria-label="Board">
+        {boards.map((b) => (
+          <option key={b.id} value={b.id}>
+            {b.name}
+          </option>
+        ))}
+        <option value={NEW_BOARD}>Create new board</option>
+      </select>
       <select
         value={priority}
         onChange={(e) => onPriorityChange(e.target.value as Priority)}
@@ -62,6 +84,16 @@ export default function AddTaskForm({
           </option>
         ))}
       </select>
+      {boardId === NEW_BOARD && (
+        <input
+          className="new-board-name"
+          value={newBoardName}
+          onChange={(e) => onNewBoardNameChange(e.target.value)}
+          placeholder="Name of the new board"
+          maxLength={40}
+          aria-label="New board name"
+        />
+      )}
       <button type="submit">Add</button>
     </form>
   );

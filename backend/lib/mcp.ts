@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "crypto";
 import { usersCollection } from "./users";
 import { userIdForAccessToken } from "./oauth";
+import { boardBelongsToUser, listBoardSummaries } from "./boards";
 import {
   cleanTitle,
   createTask,
@@ -34,34 +35,47 @@ export async function userIdForMcpToken(token: string): Promise<string | null> {
 
 const priorityProp = { type: "string", enum: [...PRIORITIES] };
 const idProp = { type: "string", description: "Task id" };
+const boardIdProp = { type: "string", description: "Board id, from list_boards" };
 
 const TOOLS = [
   {
+    name: "list_boards",
+    description:
+      "List boards (categories such as Work or Home) with their ids, names and task counts (active, done and total).",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
     name: "list_tasks",
     description:
-      "List tasks with priority, created date and completed date. Active tasks are sorted high, medium, normal.",
+      "List tasks with priority, board, created date and completed date. Active tasks are sorted high, medium, normal. Use boardId to list one board, or boardId \"none\" for tasks without a board.",
     inputSchema: {
       type: "object",
       properties: {
         status: { type: "string", enum: ["active", "done", "all"], default: "active" },
+        boardId: { type: "string", description: "Board id from list_boards, or \"none\" for tasks without a board" },
       },
     },
   },
   {
     name: "create_task",
-    description: "Create a task. Priority defaults to normal.",
+    description: "Create a task. Priority defaults to normal. boardId is optional and must be an existing board.",
     inputSchema: {
       type: "object",
-      properties: { title: { type: "string" }, priority: priorityProp },
+      properties: { title: { type: "string" }, priority: priorityProp, boardId: boardIdProp },
       required: ["title"],
     },
   },
   {
     name: "update_task",
-    description: "Edit a task's title and/or priority.",
+    description: "Edit a task's title, priority and/or board. Set boardId to null to remove the task from its board.",
     inputSchema: {
       type: "object",
-      properties: { id: idProp, title: { type: "string" }, priority: priorityProp },
+      properties: {
+        id: idProp,
+        title: { type: "string" },
+        priority: priorityProp,
+        boardId: { type: ["string", "null"], description: "Board id from list_boards, or null for no board" },
+      },
       required: ["id"],
     },
   },
@@ -85,12 +99,25 @@ const TOOLS = [
 
 class ToolError extends Error {}
 
+/** Checks a board id from a tool call. Returns null for "no board" (or for a missing value when allowed). */
+async function checkBoard(userId: string, value: unknown): Promise<string | null> {
+  if (value === null) return null;
+  if (!(await boardBelongsToUser(userId, value))) throw new ToolError("board not found (see list_boards)");
+  return value as string;
+}
+
 async function callTool(userId: string, name: string, args: Record<string, unknown>): Promise<unknown> {
   switch (name) {
+    case "list_boards":
+      return listBoardSummaries(userId);
+
     case "list_tasks": {
       const status = args.status ?? "active";
       if (!isStatusFilter(status)) throw new ToolError("status must be active, done or all");
-      return listTasks(userId, status);
+      let boardId: string | null | undefined;
+      if (args.boardId === "none") boardId = null;
+      else if (args.boardId !== undefined) boardId = await checkBoard(userId, args.boardId);
+      return listTasks(userId, status, boardId);
     }
 
     case "create_task": {
@@ -98,7 +125,8 @@ async function callTool(userId: string, name: string, args: Record<string, unkno
       if (!title) throw new ToolError("title is required (max 500 characters)");
       const priority = args.priority ?? "normal";
       if (!isPriority(priority)) throw new ToolError("priority must be high, medium or normal");
-      return createTask(userId, title, priority);
+      const boardId = args.boardId === undefined ? null : await checkBoard(userId, args.boardId);
+      return createTask(userId, title, priority, boardId);
     }
 
     case "update_task": {
@@ -114,6 +142,7 @@ async function callTool(userId: string, name: string, args: Record<string, unkno
         if (!isPriority(priority)) throw new ToolError("priority must be high, medium or normal");
         patch.priority = priority;
       }
+      if (args.boardId !== undefined) patch.boardId = await checkBoard(userId, args.boardId);
       const task = await updateTask(userId, args.id, patch);
       if (!task) throw new ToolError("task not found");
       return task;

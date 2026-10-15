@@ -11,6 +11,8 @@ export interface Task {
   id: string;
   title: string;
   priority: Priority;
+  // Null when the task has no board (tasks added before boards existed).
+  boardId: string | null;
   completed: boolean;
   createdAt: string;
   completedAt: string | null;
@@ -23,10 +25,25 @@ export interface TaskDoc {
   userId: ObjectId;
   title: string;
   priority: Priority;
+  boardId?: ObjectId | null;
   completed: boolean;
   createdAt: Date;
   completedAt: Date | null;
   updatedAt: Date;
+}
+
+// A board groups tasks, for example "Work" or "Home". The app filters tasks by board.
+export interface Board {
+  id: string;
+  name: string;
+  createdAt: string;
+}
+
+export interface BoardDoc {
+  _id: ObjectId;
+  userId: ObjectId;
+  name: string;
+  createdAt: Date;
 }
 
 export interface UserDoc {
