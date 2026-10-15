@@ -134,13 +134,13 @@ export default function Nav({ current, onAddTask, onAddNote }: Props) {
           <Icon>{ICON.home}</Icon>
           <span>To do</span>
         </Link>
+        <button type="button" className="bottom-add" onClick={() => setChooseOpen(true)} aria-label="Add a task or a note">
+          <Icon>{ICON.plus}</Icon>
+        </button>
         <Link href="/done" className={current === "done" ? "active" : ""} aria-label="Done">
           <Icon>{ICON.done}</Icon>
           <span>Done</span>
         </Link>
-        <button type="button" className="bottom-add" onClick={() => setChooseOpen(true)} aria-label="Add a task or a note">
-          <Icon>{ICON.plus}</Icon>
-        </button>
         <Link href="/notes" className={current === "notes" ? "active" : ""} aria-label="Notes">
           <Icon>{ICON.notes}</Icon>
           <span>Notes</span>
