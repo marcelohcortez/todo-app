@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import type { Board } from "@/lib/types";
 
-// Filter value for "all boards". Board ids are used for the other pills.
+// Value for "All boards" in the select. Board ids are used for the other options.
 export const ALL = "all";
 
 interface Props {
@@ -22,7 +22,7 @@ interface RenameTextProps {
   onCancel: () => void;
 }
 
-// The board's name, made editable in place inside its pill. Enter or leaving the pill saves; Escape restores the name.
+// The board's name, made editable in place where the select is. Enter or leaving it saves; Escape restores the name.
 function RenameText({ name, onSave, onCancel }: RenameTextProps) {
   // Set once the edit has ended, so a blur that follows Enter or Escape does nothing.
   const done = useRef(false);
@@ -40,7 +40,7 @@ function RenameText({ name, onSave, onCancel }: RenameTextProps) {
 
   return (
     <span
-      className="pill-name editing"
+      className="board-name-edit"
       role="textbox"
       aria-label={`Rename board ${name}`}
       contentEditable
@@ -71,71 +71,65 @@ function RenameText({ name, onSave, onCancel }: RenameTextProps) {
   );
 }
 
-// Pills that filter the list by board. "ALL" is always first. Each board has a pencil to rename it and an x to remove it.
+// A select that chooses which board's tasks are shown. With a board selected, a pencil renames it and a trash can removes it.
 export default function BoardPills({ boards, value, onChange, onRemove, onRename }: Props) {
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const selected = boards.find((b) => b.id === value) ?? null;
 
   return (
-    <div className="pills" role="group" aria-label="Filter by board">
-      <button
-        type="button"
-        className={`pill ${value === ALL ? "active" : ""}`}
-        aria-pressed={value === ALL}
-        onClick={() => onChange(ALL)}
-      >
-        All
-      </button>
-      {boards.map((b) => {
-        const editing = editingId === b.id;
-        return (
-          <span key={b.id} className={`pill-board ${value === b.id ? "active" : ""}`}>
-            {editing ? (
-              <RenameText
-                name={b.name}
-                onSave={(name) => {
-                  setEditingId(null);
-                  onRename(b, name);
-                }}
-                onCancel={() => setEditingId(null)}
-              />
-            ) : (
-              <button
-                type="button"
-                className="pill-name"
-                aria-pressed={value === b.id}
-                onClick={() => onChange(b.id)}
-              >
-                {b.name}
-              </button>
-            )}
-            {!editing && (
-              <button
-                type="button"
-                className="pill-edit"
-                onClick={() => setEditingId(b.id)}
-                aria-label={`Rename board ${b.name}`}
-                title="Rename board"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M4 20h4L19 9l-4-4L4 16z" />
-                  <path d="M13.5 6.5l4 4" />
-                </svg>
-              </button>
-            )}
-            <button
-              type="button"
-              className="pill-remove"
-              onClick={() => onRemove(b)}
-              aria-label={`Remove board ${b.name}`}
-              title="Remove board"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
-                <path d="M6 6l12 12M18 6L6 18" />
-              </svg>
-            </button>
-          </span>
-        );
-      })}
+    <div className="board-picker">
+      {editing && selected ? (
+        <RenameText
+          name={selected.name}
+          onSave={(name) => {
+            setEditing(false);
+            onRename(selected, name);
+          }}
+          onCancel={() => setEditing(false)}
+        />
+      ) : (
+        <select
+          className="board-select"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          aria-label="Show board"
+        >
+          <option value={ALL}>All boards</option>
+          {boards.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.name}
+            </option>
+          ))}
+        </select>
+      )}
+
+      {selected && !editing && (
+        <>
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={() => setEditing(true)}
+            aria-label={`Rename board ${selected.name}`}
+            title="Rename board"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M4 20h4L19 9l-4-4L4 16z" />
+              <path d="M13.5 6.5l4 4" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className="icon-btn danger"
+            onClick={() => onRemove(selected)}
+            aria-label={`Remove board ${selected.name}`}
+            title="Remove board"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6" />
+            </svg>
+          </button>
+        </>
+      )}
     </div>
   );
 }

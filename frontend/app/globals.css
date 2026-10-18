@@ -116,7 +116,7 @@
   }
 }
 
-/* ---------- boards: the "+ New board" control, its form, and the filter pills ---------- */
+/* ---------- boards: the "+ New board" control, its form, and the board picker ---------- */
 
 .board-bar {
   display: flex;
@@ -136,98 +136,41 @@
   flex: 1 1 200px;
 }
 
-.pills {
+/* The board picker: a select for the board shown, with a pencil and a trash can for the selected board. */
+.board-picker {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 18px;
-}
-
-.pill {
-  min-height: 34px;
-  padding: 6px 14px;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--border);
-  background: var(--card);
-  color: var(--muted);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.pill.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
-
-/* A board pill: the name, then a small x to remove the board. Both share one pill shape. */
-.pill-board {
-  display: inline-flex;
-  align-items: stretch;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--border);
-  background: var(--card);
-  overflow: hidden;
-}
-
-.pill-board.active {
-  background: var(--accent);
-  border-color: var(--accent);
-}
-
-.pill-name,
-.pill-edit,
-.pill-remove {
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  min-height: 34px;
-  color: var(--muted);
-}
-
-.pill-name {
-  padding: 6px 6px 6px 14px;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.pill-edit,
-.pill-remove {
-  width: 34px;
-  padding: 0;
-  display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
 }
 
-.pill-edit svg,
-.pill-remove svg {
-  width: 14px;
-  height: 14px;
+.board-select {
+  width: auto;
+  min-width: 180px;
+  max-width: 100%;
+  min-height: 36px;
+  padding: 6px var(--space-4) 6px var(--space-4);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-md);
+  font-weight: 600;
+  cursor: pointer;
 }
 
-.pill-edit:hover,
-.pill-remove:hover,
-.pill-name:hover {
+/* The selected board's name while it is being renamed: it takes the place of the select. */
+.board-name-edit {
+  display: inline-block;
+  min-width: 180px;
+  min-height: 36px;
+  padding: 6px var(--space-4);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-pill);
+  background: var(--card);
   color: var(--text);
-}
-
-.pill-board.active .pill-name,
-.pill-board.active .pill-edit,
-.pill-board.active .pill-remove {
-  color: #fff;
-}
-
-/* The board name while it is being renamed: the same pill, with the text editable. */
-.pill-name.editing {
-  min-width: 6ch;
-  padding-right: 6px;
-  cursor: text;
+  font-size: var(--text-md);
+  font-weight: 600;
+  line-height: 22px;
   white-space: nowrap;
+  cursor: text;
   outline: none;
 }
 
