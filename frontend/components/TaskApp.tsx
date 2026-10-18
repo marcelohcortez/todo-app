@@ -8,6 +8,7 @@ import type { BoardRemoval } from "./DeleteBoardSheet";
 import NewBoardForm from "./NewBoardForm";
 import Nav from "./Nav";
 import { useLiveRefresh } from "./useLiveRefresh";
+import { useToast } from "./Toast";
 import { PRIORITIES } from "@/lib/types";
 import type { Board, Priority, Task } from "@/lib/types";
 
@@ -31,6 +32,7 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
   const [tasks, setTasks] = useState<Task[] | null>(null);
   const [boards, setBoards] = useState<Board[]>([]);
   const [error, setError] = useState("");
+  const toast = useToast();
 
   // Board filter: ALL, or a board id.
   const [filter, setFilter] = useState(ALL);
@@ -91,15 +93,18 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [addOpen]);
 
-  // Resolves to true when the action succeeded. Errors are shown on the page.
-  async function run(action: () => Promise<unknown>): Promise<boolean> {
+  // Resolves to true when the action succeeded. Errors are shown on the page and in a toast.
+  // successMessage, when given, is shown in a toast after the action succeeds.
+  async function run(action: () => Promise<unknown>, successMessage?: string): Promise<boolean> {
     setError("");
     try {
       await action();
+      if (successMessage) toast(successMessage);
       await load();
       return true;
     } catch (err) {
       setError((err as Error).message);
+      toast((err as Error).message, "error");
       return false;
     }
   }
@@ -113,7 +118,7 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
         board: Board;
       };
       setBoardChoice(data.board.id);
-    });
+    }, "Board created");
   }
 
   function addTask(e: FormEvent) {
@@ -142,21 +147,23 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
       setBoardChoice("");
       setAddOpen(false);
       setInlineOpen(false);
-    });
+    }, "Task added");
   }
 
   function toggle(task: Task) {
-    run(() =>
-      api(`/api/tasks/${task.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ completed: !task.completed }),
-      })
+    run(
+      () =>
+        api(`/api/tasks/${task.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ completed: !task.completed }),
+        }),
+      task.completed ? "Task reopened" : "Task completed"
     );
   }
 
   function remove(task: Task) {
     if (!window.confirm(`Delete "${task.title}"?`)) return;
-    run(() => api(`/api/tasks/${task.id}`, { method: "DELETE" }));
+    run(() => api(`/api/tasks/${task.id}`, { method: "DELETE" }), "Task deleted");
   }
 
   function startEdit(task: Task) {
@@ -175,7 +182,7 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
         body: JSON.stringify({ title: t, priority: editPriority, boardId: editBoardId || null }),
       });
       setEditingId(null);
-    });
+    }, "Task updated");
   }
 
   // Removes a board and its tasks, or moves the tasks first. Resolves to an error message, or null on success.
@@ -183,8 +190,10 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
     try {
       await api(`/api/boards/${board.id}`, { method: "DELETE", body: JSON.stringify(removal) });
     } catch (err) {
+      toast((err as Error).message, "error");
       return (err as Error).message;
     }
+    toast(`Board "${board.name}" removed`);
     setBoardToRemove(null);
     if (filter === board.id) setFilter(ALL);
     await load();
