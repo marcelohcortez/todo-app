@@ -480,6 +480,18 @@
   line-height: 1.5;
 }
 
+/* A preview opened with "Show more" is not clipped. */
+.note-preview.expanded {
+  display: block;
+}
+
+.note-toggle {
+  min-height: 0;
+  margin-top: var(--space-1);
+  padding: var(--space-1) 0;
+  font-size: var(--text-sm);
+}
+
 .note-detail {
   display: flex;
   flex-direction: column;

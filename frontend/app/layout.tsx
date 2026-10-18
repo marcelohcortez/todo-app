@@ -1,6 +1,7 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import { ToastProvider } from "@/components/Toast";
 
 export const metadata: Metadata = {
   title: "Keeptrack",
@@ -26,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        {children}
+        <ToastProvider>{children}</ToastProvider>
         <ServiceWorkerRegister />
       </body>
     </html>

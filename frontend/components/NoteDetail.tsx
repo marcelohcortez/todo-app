@@ -6,6 +6,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import Nav from "./Nav";
 import NoteField from "./NoteField";
 import { useLiveRefresh } from "./useLiveRefresh";
+import { useToast } from "./Toast";
 import type { Note } from "@/lib/types";
 
 function fmt(iso: string): string {
@@ -29,6 +30,7 @@ export default function NoteDetail({ id }: { id: string }) {
   const [text, setText] = useState("");
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const toast = useToast();
 
   const loadNote = useCallback(() => {
     fetch(`/api/notes/${id}`, { cache: "no-store" }).then(async (res) => {
@@ -69,15 +71,25 @@ export default function NoteDetail({ id }: { id: string }) {
         setNote(updated);
         setText(updated.body);
         setSaved(true);
+        toast("Note saved");
       })
-      .catch((err) => setError((err as Error).message));
+      .catch((err) => {
+        setError((err as Error).message);
+        toast((err as Error).message, "error");
+      });
   }
 
   function remove() {
     if (!window.confirm("Delete this note? It will also be removed from your vault on the next sync.")) return;
     api(`/api/notes/${id}`, { method: "DELETE" })
-      .then(() => router.replace("/notes"))
-      .catch((err) => setError((err as Error).message));
+      .then(() => {
+        toast("Note deleted");
+        router.replace("/notes");
+      })
+      .catch((err) => {
+        setError((err as Error).message);
+        toast((err as Error).message, "error");
+      });
   }
 
   return (
