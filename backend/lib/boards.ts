@@ -89,6 +89,30 @@ export async function createBoard(userId: string, name: string): Promise<Board> 
   return toBoard(doc);
 }
 
+/**
+ * Renames a board. Returns "not_found" if the board does not belong to this user, and "duplicate" if another
+ * board of this user already has the name (ignoring case). Renaming a board to its own name in another case is allowed.
+ */
+export async function renameBoard(userId: string, id: string, name: string): Promise<Board | "not_found" | "duplicate"> {
+  if (!ObjectId.isValid(id)) return "not_found";
+  const uid = new ObjectId(userId);
+  const boardId = new ObjectId(id);
+  const col = await boardsCollection();
+  const board = await col.findOne({ _id: boardId, userId: uid });
+  if (!board) return "not_found";
+
+  const clash = await col.findOne({
+    userId: uid,
+    _id: { $ne: boardId },
+    name: { $regex: `^${escapeRegex(name)}$`, $options: "i" },
+  });
+  if (clash) return "duplicate";
+
+  await col.updateOne({ _id: boardId, userId: uid }, { $set: { name } });
+  await notifyChanged(userId);
+  return toBoard({ ...board, name });
+}
+
 // What happens to a board's tasks when the board is removed. Done tasks are included.
 export type BoardRemoval = { action: "delete" } | { action: "move"; targetId: string };
 

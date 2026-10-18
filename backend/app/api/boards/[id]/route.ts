@@ -1,6 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserId, unauthorized } from "@/lib/auth";
-import { boardBelongsToUser, removeBoard } from "@/lib/boards";
+import { boardBelongsToUser, cleanBoardName, removeBoard, renameBoard } from "@/lib/boards";
+
+// PATCH /api/boards/:id  { name } renames the board.
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  const userId = await getCurrentUserId();
+  if (!userId) return unauthorized();
+
+  const body = await req.json().catch(() => null);
+  const name = cleanBoardName(body?.name);
+  if (!name) {
+    return NextResponse.json({ error: "Board name is required (max 40 characters)" }, { status: 400 });
+  }
+
+  const result = await renameBoard(userId, params.id, name);
+  if (result === "not_found") {
+    return NextResponse.json({ error: "Board not found" }, { status: 404 });
+  }
+  if (result === "duplicate") {
+    return NextResponse.json({ error: "You already have a board with this name" }, { status: 409 });
+  }
+  return NextResponse.json({ board: result });
+}
 
 // DELETE /api/boards/:id  { action: "delete" } removes the board and its tasks.
 // { action: "move", targetId } moves its tasks to another board first.
