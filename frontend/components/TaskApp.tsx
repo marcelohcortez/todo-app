@@ -185,6 +185,11 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
     }, "Task updated");
   }
 
+  // Renames a board. A name another board already uses is refused by the server, and the error is shown in a toast.
+  function renameBoardNow(board: Board, name: string) {
+    run(() => api(`/api/boards/${board.id}`, { method: "PATCH", body: JSON.stringify({ name }) }), "Board renamed");
+  }
+
   // Removes a board and its tasks, or moves the tasks first. Resolves to an error message, or null on success.
   async function removeBoardNow(board: Board, removal: BoardRemoval): Promise<string | null> {
     try {
@@ -303,7 +308,13 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
         {error && <p className="error">{error}</p>}
 
         {tasks !== null && (
-          <BoardPills boards={boards} value={filter} onChange={setFilter} onRemove={setBoardToRemove} />
+          <BoardPills
+            boards={boards}
+            value={filter}
+            onChange={setFilter}
+            onRemove={setBoardToRemove}
+            onRename={renameBoardNow}
+          />
         )}
 
         {tasks === null ? (

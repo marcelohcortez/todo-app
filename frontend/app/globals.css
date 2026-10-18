@@ -178,6 +178,7 @@
 }
 
 .pill-name,
+.pill-edit,
 .pill-remove {
   background: transparent;
   border: none;
@@ -194,6 +195,7 @@
   text-transform: uppercase;
 }
 
+.pill-edit,
 .pill-remove {
   width: 34px;
   padding: 0;
@@ -202,19 +204,31 @@
   justify-content: center;
 }
 
+.pill-edit svg,
 .pill-remove svg {
   width: 14px;
   height: 14px;
 }
 
+.pill-edit:hover,
 .pill-remove:hover,
 .pill-name:hover {
   color: var(--text);
 }
 
 .pill-board.active .pill-name,
+.pill-board.active .pill-edit,
 .pill-board.active .pill-remove {
   color: #fff;
+}
+
+/* The board name while it is being renamed: the same pill, with the text editable. */
+.pill-name.editing {
+  min-width: 6ch;
+  padding-right: 6px;
+  cursor: text;
+  white-space: nowrap;
+  outline: none;
 }
 
 /* Choices in the remove-board sheet. */
