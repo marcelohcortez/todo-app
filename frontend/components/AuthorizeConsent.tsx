@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Button from "./ui/Button";
+import { cn } from "./ui/cn";
+import { authCard, authPage, errorText, mutedText } from "./ui/styles";
 
 type Params = Record<string, string>;
 
@@ -61,30 +64,33 @@ export default function AuthorizeConsent() {
   }
 
   return (
-    <main className="auth">
-      <h1>Connect an app</h1>
-      {error && <p className="error">{error}</p>}
-      {!error && !clientName && <p className="muted">Loading…</p>}
-      {clientName && (
-        <>
-          <p>
-            <strong>{clientName}</strong> wants to view and change your tasks: list, create, edit, complete and
-            delete them.
-          </p>
-          <p>
-            Approving sends access to <strong>{redirectHost(params?.redirect_uri)}</strong>. Only approve if you
-            started this connection yourself.
-          </p>
-          <div className="row">
-            <button onClick={() => decide("allow")} disabled={busy}>
-              Allow
-            </button>
-            <button className="ghost" onClick={() => decide("deny")} disabled={busy}>
-              Deny
-            </button>
-          </div>
-        </>
-      )}
+    <main className={authPage}>
+      <div className={cn(authCard, "text-left")}>
+        <h1 className="text-xl font-semibold text-gray-100">Connect an app</h1>
+        {error && <p className={cn("mt-4", errorText)}>{error}</p>}
+        {!error && !clientName && <p className={cn("mt-4", mutedText)}>Loading…</p>}
+        {clientName && (
+          <>
+            <p className="mt-4 text-sm leading-relaxed text-gray-300">
+              <strong className="font-semibold text-gray-100">{clientName}</strong> wants to view and change your
+              tasks: list, create, edit, complete and delete them.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed text-gray-300">
+              Approving sends access to{" "}
+              <strong className="break-all font-semibold text-gray-100">{redirectHost(params?.redirect_uri)}</strong>.
+              Only approve if you started this connection yourself.
+            </p>
+            <div className="mt-6 flex gap-2">
+              <Button className="flex-1" onClick={() => decide("allow")} disabled={busy}>
+                Allow
+              </Button>
+              <Button className="flex-1" variant="outlined" intent="gray" onClick={() => decide("deny")} disabled={busy}>
+                Deny
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
     </main>
   );
 }

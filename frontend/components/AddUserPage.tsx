@@ -2,6 +2,9 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import Nav from "./Nav";
+import Button from "./ui/Button";
+import { cn } from "./ui/cn";
+import { badgeClass, card, errorText, field, headingText, mutedText, pageMain } from "./ui/styles";
 
 interface UserSummary {
   email: string;
@@ -67,18 +70,19 @@ export default function AddUserPage() {
   return (
     <>
       <Nav current="users" />
-      <main className="container">
+      <main className={cn(pageMain, "grid gap-5")}>
         {forbidden ? (
-          <p className="muted">Only the admin can add users.</p>
+          <p className={mutedText}>Only the admin can add users.</p>
         ) : users === null ? (
           // Nothing is shown until the server confirms this is the admin, so the form never flashes for anyone else.
-          <p className="muted">Loading…</p>
+          <p className={mutedText}>Loading…</p>
         ) : (
           <>
-            <section className="card add-user-form">
-              <h2>Add user</h2>
-              <form onSubmit={submit}>
+            <section className={card}>
+              <h2 className={headingText}>Add user</h2>
+              <form onSubmit={submit} className="mt-4 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
                 <input
+                  className={field}
                   type="email"
                   placeholder="Email"
                   autoComplete="off"
@@ -87,6 +91,7 @@ export default function AddUserPage() {
                   required
                 />
                 <input
+                  className={field}
                   type="password"
                   placeholder="Password (8 characters or more)"
                   autoComplete="new-password"
@@ -95,28 +100,30 @@ export default function AddUserPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
-                <button type="submit" disabled={busy}>
+                <Button type="submit" disabled={busy}>
                   {busy ? "Adding…" : "Add user"}
-                </button>
+                </Button>
               </form>
-              {error && <p className="error">{error}</p>}
-              {notice && <p className="muted">{notice}</p>}
+              {error && <p className={cn("mt-3", errorText)}>{error}</p>}
+              {notice && <p className={cn("mt-3", mutedText)}>{notice}</p>}
             </section>
 
-            <h2 className="users-heading">Users</h2>
-            <ul className="list">
-              {users.map((u) => (
-                <li key={u.email} className="item">
-                  <div className="body">
-                    <span className="title">{u.email}</span>
-                    <div className="meta">
-                      {u.isAdmin && <span className="admin-tag">Admin</span>}
-                      <span>Added {fmt(u.createdAt)}</span>
+            <div>
+              <h2 className={headingText}>Users</h2>
+              <ul className="mt-3 flex flex-col gap-2">
+                {users.map((u) => (
+                  <li key={u.email} className="item flex items-center justify-between gap-3 rounded-xl border border-gray-800 bg-gray-900 p-3.5 shadow-lg shadow-black/10">
+                    <div className="min-w-0">
+                      <span className="block break-all text-sm font-medium text-gray-100">{u.email}</span>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                        {u.isAdmin && <span className={badgeClass("board")}>Admin</span>}
+                        <span>Added {fmt(u.createdAt)}</span>
+                      </div>
                     </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </>
         )}
       </main>

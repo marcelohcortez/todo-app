@@ -1,6 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { cn } from "./ui/cn";
+import { PencilIcon, TrashIcon } from "./ui/icons";
+import { field, iconButton, iconButtonDanger } from "./ui/styles";
 import type { Board } from "@/lib/types";
 
 // Value for "All boards" in the select. Board ids are used for the other options.
@@ -40,7 +43,7 @@ function RenameText({ name, onSave, onCancel }: RenameTextProps) {
 
   return (
     <span
-      className="board-name-edit"
+      className="inline-block min-w-0 max-w-full rounded-lg bg-gray-800 px-3 py-1.5 text-base font-medium text-gray-100 outline-2 outline-primary-500 focus:outline"
       role="textbox"
       aria-label={`Rename board ${name}`}
       contentEditable
@@ -77,7 +80,7 @@ export default function BoardPills({ boards, value, onChange, onRemove, onRename
   const selected = boards.find((b) => b.id === value) ?? null;
 
   return (
-    <div className="board-picker">
+    <div className="flex min-w-0 items-center gap-1">
       {editing && selected ? (
         <RenameText
           name={selected.name}
@@ -89,7 +92,7 @@ export default function BoardPills({ boards, value, onChange, onRemove, onRename
         />
       ) : (
         <select
-          className="board-select"
+          className={cn(field, "h-9 w-auto min-w-44 max-w-full text-base font-medium")}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           aria-label="Show board"
@@ -107,26 +110,21 @@ export default function BoardPills({ boards, value, onChange, onRemove, onRename
         <>
           <button
             type="button"
-            className="icon-btn"
+            className={iconButton}
             onClick={() => setEditing(true)}
             aria-label={`Rename board ${selected.name}`}
             title="Rename board"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M4 20h4L19 9l-4-4L4 16z" />
-              <path d="M13.5 6.5l4 4" />
-            </svg>
+            <PencilIcon />
           </button>
           <button
             type="button"
-            className="icon-btn danger"
+            className={cn(iconButton, iconButtonDanger)}
             onClick={() => onRemove(selected)}
             aria-label={`Remove board ${selected.name}`}
             title="Remove board"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6" />
-            </svg>
+            <TrashIcon />
           </button>
         </>
       )}

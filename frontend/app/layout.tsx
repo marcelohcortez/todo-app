@@ -20,12 +20,13 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#0d0d16",
+  themeColor: "#0b0f1c",
 };
 
+// data-palette picks the Tailus purple palette for the primary colour (see tailwind.config.ts).
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" data-palette="mystery">
       <body>
         <ToastProvider>{children}</ToastProvider>
         <ServiceWorkerRegister />

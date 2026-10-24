@@ -2,6 +2,8 @@
 
 import { useRef } from "react";
 import MicButton from "./MicButton";
+import { cn } from "./ui/cn";
+import { textareaField } from "./ui/styles";
 
 const MAX_LENGTH = 20000;
 
@@ -18,8 +20,9 @@ export default function NoteField({ value, onChange, onError, autoFocus = false 
   const spokenPrefix = useRef("");
 
   return (
-    <div className="input-wrap note-field">
+    <div className="relative">
       <textarea
+        className={cn(textareaField, "pr-12")}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Write a note, or tap the mic and speak"

@@ -1,9 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Button from "./ui/Button";
+import Sheet from "./ui/Sheet";
+import { cn } from "./ui/cn";
+import { errorText, field, mutedText } from "./ui/styles";
 import type { Board } from "@/lib/types";
 
 export type BoardRemoval = { action: "delete" } | { action: "move"; targetId: string };
+
+// One of the two choices. The selected one gets the purple outline.
+function choice(selected: boolean): string {
+  return cn(
+    "flex w-full flex-col items-start gap-0.5 rounded-xl border p-3 text-left text-sm transition",
+    "hover:bg-gray-800/60 disabled:pointer-events-none disabled:opacity-50",
+    selected ? "border-primary-500 bg-primary-500/10" : "border-gray-700"
+  );
+}
 
 interface Props {
   board: Board;
@@ -49,73 +62,59 @@ export default function DeleteBoardSheet({ board, otherBoards, onCancel, onConfi
       : `It has ${board.taskCount} tasks.`;
 
   return (
-    <div className="sheet-backdrop" onClick={onCancel}>
-      <div
-        className="sheet"
-        role="dialog"
-        aria-modal="true"
-        aria-label={`Remove board ${board.name}`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="sheet-head">
-          <h2>Remove “{board.name}”?</h2>
-          <button className="ghost" type="button" onClick={onCancel}>
-            Cancel
+    <Sheet label={`Remove board ${board.name}`} title={`Remove “${board.name}”?`} onClose={onCancel}>
+      <p className={mutedText}>{taskText}</p>
+
+      {hasTasks && (
+        <div className="mt-4 flex flex-col gap-2" role="radiogroup" aria-label="What happens to the tasks">
+          <button
+            type="button"
+            role="radio"
+            aria-checked={mode === "move"}
+            className={choice(mode === "move")}
+            onClick={() => setMode("move")}
+            disabled={!canMove}
+          >
+            <span className="font-medium text-gray-100">Move its tasks to another board</span>
+            {!canMove && <span className="text-xs text-gray-400">You have no other board yet.</span>}
+          </button>
+          {mode === "move" && canMove && (
+            <select
+              className={field}
+              value={targetId}
+              onChange={(e) => setTargetId(e.target.value)}
+              aria-label="Board that receives the tasks"
+            >
+              {otherBoards.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          )}
+          <button
+            type="button"
+            role="radio"
+            aria-checked={mode === "delete"}
+            className={choice(mode === "delete")}
+            onClick={() => setMode("delete")}
+          >
+            <span className="font-medium text-gray-100">Delete its tasks too</span>
+            <span className="text-xs text-gray-400">This cannot be undone.</span>
           </button>
         </div>
+      )}
 
-        <p className="muted">{taskText}</p>
+      {error && <p className={cn("mt-3", errorText)}>{error}</p>}
 
-        {hasTasks && (
-          <div className="choices" role="radiogroup" aria-label="What happens to the tasks">
-            <button
-              type="button"
-              role="radio"
-              aria-checked={mode === "move"}
-              className={`choice ${mode === "move" ? "selected" : ""}`}
-              onClick={() => setMode("move")}
-              disabled={!canMove}
-            >
-              <span className="choice-title">Move its tasks to another board</span>
-              {!canMove && <span className="choice-note">You have no other board yet.</span>}
-            </button>
-            {mode === "move" && canMove && (
-              <select
-                value={targetId}
-                onChange={(e) => setTargetId(e.target.value)}
-                aria-label="Board that receives the tasks"
-              >
-                {otherBoards.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-            )}
-            <button
-              type="button"
-              role="radio"
-              aria-checked={mode === "delete"}
-              className={`choice ${mode === "delete" ? "selected" : ""}`}
-              onClick={() => setMode("delete")}
-            >
-              <span className="choice-title">Delete its tasks too</span>
-              <span className="choice-note">This cannot be undone.</span>
-            </button>
-          </div>
-        )}
-
-        {error && <p className="error">{error}</p>}
-
-        <div className="sheet-actions">
-          <button className="ghost" type="button" onClick={onCancel} disabled={busy}>
-            Keep board
-          </button>
-          <button className="btn-danger" type="button" onClick={confirm} disabled={busy}>
-            {busy ? "Removing…" : "Remove board"}
-          </button>
-        </div>
+      <div className="mt-5 flex justify-end gap-2">
+        <Button variant="ghost" intent="gray" onClick={onCancel} disabled={busy}>
+          Keep board
+        </Button>
+        <Button intent="danger" onClick={confirm} disabled={busy}>
+          {busy ? "Removing…" : "Remove board"}
+        </Button>
       </div>
-    </div>
+    </Sheet>
   );
 }

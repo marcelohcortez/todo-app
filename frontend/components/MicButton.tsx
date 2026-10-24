@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { MicIcon } from "./ui/icons";
+import { cn } from "./ui/cn";
 
 // The Web Speech API is not in every TypeScript DOM lib, so the parts we use are typed here.
 interface SpeechResult {
@@ -95,15 +97,16 @@ export default function MicButton({ onStart, onResult, onError }: Props) {
   return (
     <button
       type="button"
-      className={`mic ${listening ? "listening" : ""}`}
+      className={cn(
+        "absolute right-1.5 top-1.5 inline-flex size-8 items-center justify-center rounded-full transition",
+        "outline-2 outline-primary-500 focus-visible:outline",
+        listening ? "animate-pulse bg-danger-500/15 text-danger-200" : "text-gray-400 hover:bg-gray-800 hover:text-gray-100"
+      )}
       onClick={toggle}
       aria-label={listening ? "Stop voice input" : "Start voice input"}
       aria-pressed={listening}
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-        <rect x="9" y="3" width="6" height="12" rx="3" />
-        <path d="M5 11a7 7 0 0 0 14 0M12 18v3" strokeLinecap="round" />
-      </svg>
+      <MicIcon />
     </button>
   );
 }

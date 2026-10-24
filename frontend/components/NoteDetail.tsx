@@ -7,6 +7,9 @@ import Nav from "./Nav";
 import NoteField from "./NoteField";
 import { useLiveRefresh } from "./useLiveRefresh";
 import { useToast } from "./Toast";
+import Button from "./ui/Button";
+import { cn } from "./ui/cn";
+import { card, errorText, mutedText, pageMain } from "./ui/styles";
 import type { Note } from "@/lib/types";
 
 function fmt(iso: string): string {
@@ -95,31 +98,33 @@ export default function NoteDetail({ id }: { id: string }) {
   return (
     <>
       <Nav current="notes" />
-      <main className="container">
-        <p className="back">
-          <Link href="/notes">← All notes</Link>
+      <main className={pageMain}>
+        <p className="mb-4">
+          <Link href="/notes" className="text-sm text-gray-400 transition hover:text-gray-100">
+            ← All notes
+          </Link>
         </p>
 
         {notFound ? (
-          <p className="muted">This note does not exist. It may have been deleted.</p>
+          <p className={mutedText}>This note does not exist. It may have been deleted.</p>
         ) : note === null ? (
-          <p className="muted">Loading…</p>
+          <p className={mutedText}>Loading…</p>
         ) : (
-          <div className="card note-detail">
-            <form onSubmit={save}>
+          <div className={card}>
+            <form onSubmit={save} className="grid gap-3">
               <NoteField value={text} onChange={(v) => { setText(v); setSaved(false); }} onError={setError} />
-              <div className="note-actions">
-                <button className="ghost danger" type="button" onClick={remove}>
+              <div className="flex items-center justify-between gap-3">
+                <Button variant="ghost" intent="danger" type="button" onClick={remove}>
                   Delete
-                </button>
-                <span className="muted">{saved && !dirty ? "Saved" : ""}</span>
-                <button type="submit" disabled={!dirty || text.trim().length === 0}>
+                </Button>
+                <span className="text-sm text-gray-400">{saved && !dirty ? "Saved" : ""}</span>
+                <Button type="submit" disabled={!dirty || text.trim().length === 0}>
                   Save
-                </button>
+                </Button>
               </div>
             </form>
-            {error && <p className="error">{error}</p>}
-            <p className="meta">
+            {error && <p className={cn("mt-3", errorText)}>{error}</p>}
+            <p className="mt-4 flex flex-wrap gap-x-3 gap-y-1 border-t border-gray-800 pt-3 text-xs text-gray-500">
               <span>Added {fmt(note.createdAt)}</span>
               {note.updatedAt !== note.createdAt && <span>Edited {fmt(note.updatedAt)}</span>}
             </p>

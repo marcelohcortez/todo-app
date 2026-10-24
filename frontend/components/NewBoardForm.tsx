@@ -1,6 +1,8 @@
 "use client";
 
 import { FormEvent, ReactNode, useState } from "react";
+import Button from "./ui/Button";
+import { field } from "./ui/styles";
 
 interface Props {
   // Resolves to true when the board was created.
@@ -33,12 +35,14 @@ export default function NewBoardForm({ onCreate, before, open, onOpen, onClose }
 
   return (
     <>
-      <div className="board-bar">
+      <div className="board-bar mb-3 flex flex-wrap items-center gap-2">
         {before}
         {open ? (
           // Cancel takes the place of "+ New board", the same as the task form's Cancel.
-          <button
-            className="ghost"
+          <Button
+            variant="ghost"
+            intent="gray"
+            size="sm"
             type="button"
             onClick={() => {
               onClose();
@@ -46,17 +50,18 @@ export default function NewBoardForm({ onCreate, before, open, onOpen, onClose }
             }}
           >
             Cancel
-          </button>
+          </Button>
         ) : (
-          <button className="ghost" type="button" onClick={onOpen}>
+          <Button variant="ghost" intent="gray" size="sm" type="button" onClick={onOpen}>
             + New board
-          </button>
+          </Button>
         )}
       </div>
 
       {open && (
-        <form className="board-form" onSubmit={submit}>
+        <form className="mb-4 flex gap-2" onSubmit={submit}>
           <input
+            className={field}
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Name of the new board"
@@ -64,9 +69,9 @@ export default function NewBoardForm({ onCreate, before, open, onOpen, onClose }
             aria-label="New board name"
             autoFocus
           />
-          <button type="submit" disabled={busy || !name.trim()}>
+          <Button type="submit" size="md" className="shrink-0" disabled={busy || !name.trim()}>
             Create board
-          </button>
+          </Button>
         </form>
       )}
     </>

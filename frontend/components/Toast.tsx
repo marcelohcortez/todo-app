@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { cn } from "./ui/cn";
 
 export type ToastKind = "success" | "error";
 type ShowToast = (message: string, kind?: ToastKind) => void;
@@ -36,11 +37,19 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={show}>
       {children}
-      <div className="toast-region" aria-live="polite">
+      <div
+        className="pointer-events-none fixed inset-x-0 bottom-24 z-[60] flex justify-center px-4 min-[721px]:bottom-6"
+        aria-live="polite"
+      >
         {current && (
           <div
             key={current.id}
-            className={`toast ${current.kind}`}
+            className={cn(
+              "pointer-events-auto max-w-md rounded-xl border px-4 py-2.5 text-sm shadow-xl shadow-black/40",
+              current.kind === "error"
+                ? "border-danger-500/40 bg-gray-900 text-danger-200"
+                : "border-gray-700 bg-gray-900 text-gray-100"
+            )}
             role={current.kind === "error" ? "alert" : "status"}
           >
             {current.message}

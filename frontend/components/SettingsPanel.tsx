@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Nav from "./Nav";
+import Button from "./ui/Button";
+import { cn } from "./ui/cn";
+import { card, errorText, field, headingText, mutedText, pageMain } from "./ui/styles";
+
+const preClass =
+  "mt-2 overflow-x-auto whitespace-pre-wrap break-all rounded-lg border border-gray-800 bg-gray-950 p-3 font-mono text-xs text-gray-200";
 
 interface McpToken {
   id: string;
@@ -119,98 +125,97 @@ export default function SettingsPanel() {
   return (
     <>
       <Nav current="settings" />
-      <main className="container">
-        <section className="panel">
-          <h2>AI access (MCP)</h2>
-          <p className="muted">
+      <main className={cn(pageMain, "grid gap-5")}>
+        <section className={card}>
+          <h2 className={headingText}>AI access (MCP)</h2>
+          <p className={cn("mt-1", mutedText)}>
             Lets an AI client create, edit, complete and delete your tasks. Give each client its own token, so
             you can revoke one without affecting the others. A token is shown only once, when you create it.
           </p>
-          <p>
-            Endpoint: <code>{mcpUrl}</code>
+          <p className="mt-3 text-sm text-gray-300">
+            Endpoint: <code className="break-all rounded bg-gray-800 px-1.5 py-0.5 text-xs text-primary-200">{mcpUrl}</code>
           </p>
           <form
-            className="row"
+            className="mt-4 flex flex-wrap gap-2"
             onSubmit={(e) => {
               e.preventDefault();
               generate();
             }}
           >
             <input
+              className={cn(field, "min-w-0 flex-1")}
               value={newLabel}
               onChange={(e) => setNewLabel(e.target.value)}
               placeholder="Name, for example Claude Code"
               maxLength={40}
               aria-label="Token name"
             />
-            <button type="submit">Create token</button>
+            <Button type="submit">Create token</Button>
           </form>
-          {tokens === null && <p className="muted">Loading…</p>}
-          {tokens?.length === 0 && <p className="muted">No tokens yet.</p>}
+          {tokens === null && <p className={cn("mt-4", mutedText)}>Loading…</p>}
+          {tokens?.length === 0 && <p className={cn("mt-4", mutedText)}>No tokens yet.</p>}
           {tokens && tokens.length > 0 && (
-            <ul className="list">
+            <ul className="mt-4 flex flex-col gap-2">
               {tokens.map((t) => (
-                <li key={t.id} className="item">
-                  <div className="body">
-                    <span className="title">{t.label}</span>
+                <li key={t.id} className="item flex items-center justify-between gap-3 rounded-lg border border-gray-800 bg-gray-950/50 p-3">
+                  <div className="min-w-0">
+                    <span className="block break-words text-sm font-medium text-gray-100">{t.label}</span>
                     {t.createdAt && (
-                      <div className="meta">
+                      <div className="mt-0.5 text-xs text-gray-500">
                         <span>Created {fmtDate(t.createdAt)}</span>
                       </div>
                     )}
                   </div>
-                  <div className="actions">
-                    <button className="ghost danger" onClick={() => revoke(t)}>
-                      Revoke
-                    </button>
-                  </div>
+                  <Button variant="ghost" intent="danger" size="sm" onClick={() => revoke(t)}>
+                    Revoke
+                  </Button>
                 </li>
               ))}
             </ul>
           )}
           {token && (
             <>
-              <p>Copy this token now. You will not see it again:</p>
-              <pre className="token">{token}</pre>
-              <div className="row">
-                <button onClick={copy}>{copied ? "Copied" : "Copy token"}</button>
+              <p className="mt-5 text-sm text-gray-200">Copy this token now. You will not see it again:</p>
+              <pre className={preClass}>{token}</pre>
+              <div className="mt-3">
+                <Button variant="soft" size="sm" onClick={copy}>
+                  {copied ? "Copied" : "Copy token"}
+                </Button>
               </div>
-              <p className="muted">Example client configuration:</p>
-              <pre className="token">{config}</pre>
+              <p className={cn("mt-4", mutedText)}>Example client configuration:</p>
+              <pre className={preClass}>{config}</pre>
             </>
           )}
-          {error && <p className="error">{error}</p>}
+          {error && <p className={cn("mt-3", errorText)}>{error}</p>}
         </section>
 
-        <section className="panel">
-          <h2>Connected apps</h2>
-          <p className="muted">
+        <section className={card}>
+          <h2 className={headingText}>Connected apps</h2>
+          <p className={cn("mt-1", mutedText)}>
             Apps connected to your account with sign-in, such as claude.ai. Each one can use your tasks until
             you disconnect it or its access expires.
           </p>
-          {connections === null && !connectionError && <p className="muted">Loading…</p>}
-          {connections?.length === 0 && <p className="muted">No apps connected.</p>}
+          {connections === null && !connectionError && <p className={cn("mt-4", mutedText)}>Loading…</p>}
+          {connections?.length === 0 && <p className={cn("mt-4", mutedText)}>No apps connected.</p>}
           {connections && connections.length > 0 && (
-            <ul className="list">
+            <ul className="mt-4 flex flex-col gap-2">
               {connections.map((c) => (
-                <li key={c.clientId} className="item">
-                  <div className="body">
-                    <span className="title">{c.clientName}</span>
-                    <div className="meta">
+                <li key={c.clientId} className="item flex items-center justify-between gap-3 rounded-lg border border-gray-800 bg-gray-950/50 p-3">
+                  <div className="min-w-0">
+                    <span className="block break-words text-sm font-medium text-gray-100">{c.clientName}</span>
+                    <div className="mt-0.5 flex flex-wrap gap-x-2 text-xs text-gray-500">
                       <span>Connected {fmtDate(c.connectedAt)}</span>
                       <span>· Access expires {fmtDate(c.expiresAt)}</span>
                     </div>
                   </div>
-                  <div className="actions">
-                    <button className="ghost danger" onClick={() => disconnect(c)}>
-                      Disconnect
-                    </button>
-                  </div>
+                  <Button variant="ghost" intent="danger" size="sm" onClick={() => disconnect(c)}>
+                    Disconnect
+                  </Button>
                 </li>
               ))}
             </ul>
           )}
-          {connectionError && <p className="error">{connectionError}</p>}
+          {connectionError && <p className={cn("mt-3", errorText)}>{connectionError}</p>}
         </section>
       </main>
     </>

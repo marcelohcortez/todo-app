@@ -2,6 +2,8 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import Button from "./ui/Button";
+import { authCard, authPage, errorText, field } from "./ui/styles";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -35,30 +37,35 @@ export default function LoginForm() {
   }
 
   return (
-    <main className="auth">
-      <h1>Log in</h1>
-      <form onSubmit={submit}>
-        <input
-          type="email"
-          placeholder="Email"
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        {error && <p className="error">{error}</p>}
-        <button type="submit" disabled={busy}>
-          {busy ? "Please wait…" : "Log in"}
-        </button>
-      </form>
+    <main className={authPage}>
+      <div className={authCard}>
+        <img src="/logo.png" alt="" className="mx-auto mb-5 h-8 w-auto" />
+        <h1 className="text-xl font-semibold text-gray-100">Log in</h1>
+        <form onSubmit={submit} className="mt-5 grid gap-3">
+          <input
+            className={field}
+            type="email"
+            placeholder="Email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <input
+            className={field}
+            type="password"
+            placeholder="Password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          {error && <p className={errorText}>{error}</p>}
+          <Button type="submit" size="lg" disabled={busy} className="mt-1">
+            {busy ? "Please wait…" : "Log in"}
+          </Button>
+        </form>
+      </div>
     </main>
   );
 }

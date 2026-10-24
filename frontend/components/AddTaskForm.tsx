@@ -2,6 +2,9 @@
 
 import { FormEvent, useRef } from "react";
 import MicButton from "./MicButton";
+import Button from "./ui/Button";
+import { cn } from "./ui/cn";
+import { field } from "./ui/styles";
 import { PRIORITIES } from "@/lib/types";
 import type { Board, Priority } from "@/lib/types";
 
@@ -47,9 +50,16 @@ export default function AddTaskForm({
   const spokenPrefix = useRef("");
 
   return (
-    <form className={variant === "inline" ? "add" : "add-sheet"} onSubmit={onSubmit}>
-      <div className="input-wrap">
+    <form
+      className={cn(
+        "grid grid-cols-2 gap-2 min-[521px]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]",
+        variant === "inline" && "mb-5 rounded-xl border border-gray-800 bg-gray-900 p-3 shadow-lg shadow-black/20"
+      )}
+      onSubmit={onSubmit}
+    >
+      <div className="relative col-span-2 min-[521px]:col-span-3">
         <input
+          className={cn(field, "pr-12")}
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
           placeholder="What needs doing?"
@@ -65,7 +75,7 @@ export default function AddTaskForm({
           onError={onError}
         />
       </div>
-      <select value={boardId} onChange={(e) => onBoardChange(e.target.value)} aria-label="Board">
+      <select className={field} value={boardId} onChange={(e) => onBoardChange(e.target.value)} aria-label="Board">
         <option value="" disabled>
           Select board
         </option>
@@ -77,6 +87,7 @@ export default function AddTaskForm({
         ))}
       </select>
       <select
+        className={field}
         value={priority}
         onChange={(e) => onPriorityChange(e.target.value as Priority)}
         aria-label="Priority"
@@ -89,7 +100,7 @@ export default function AddTaskForm({
       </select>
       {boardId === NEW_BOARD && (
         <input
-          className="new-board-name"
+          className={cn(field, "col-span-2 min-[521px]:col-span-3")}
           value={newBoardName}
           onChange={(e) => onNewBoardNameChange(e.target.value)}
           placeholder="Name of the new board"
@@ -97,7 +108,9 @@ export default function AddTaskForm({
           aria-label="New board name"
         />
       )}
-      <button type="submit">Add</button>
+      <Button type="submit" className="col-span-2 min-[521px]:col-span-1">
+        Add
+      </Button>
     </form>
   );
 }

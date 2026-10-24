@@ -9,6 +9,11 @@ import NewBoardForm from "./NewBoardForm";
 import Nav from "./Nav";
 import { useLiveRefresh } from "./useLiveRefresh";
 import { useToast } from "./Toast";
+import Button from "./ui/Button";
+import Sheet from "./ui/Sheet";
+import { cn } from "./ui/cn";
+import { PencilIcon, TrashIcon } from "./ui/icons";
+import { badgeClass, errorText, field, iconButton, iconButtonDanger, mutedText, pageMain } from "./ui/styles";
 import { PRIORITIES } from "@/lib/types";
 import type { Board, Priority, Task } from "@/lib/types";
 
@@ -218,38 +223,24 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
       <Nav current={view} onAddTask={view === "active" ? () => setAddOpen(true) : undefined} />
 
       {view === "active" && addOpen && (
-        <div className="sheet-backdrop" onClick={() => setAddOpen(false)}>
-          <div
-            className="sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label="New task"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="sheet-head">
-              <h2>New task</h2>
-              <button className="ghost" type="button" onClick={() => setAddOpen(false)}>
-                Cancel
-              </button>
-            </div>
-            <AddTaskForm
-              variant="sheet"
-              autoFocus
-              title={title}
-              onTitleChange={setTitle}
-              priority={priority}
-              onPriorityChange={setPriority}
-              boards={boards}
-              boardId={addBoardId}
-              onBoardChange={setBoardChoice}
-              newBoardName={newBoardName}
-              onNewBoardNameChange={setNewBoardName}
-              onSubmit={addTask}
-              onError={setError}
-            />
-            {error && <p className="error">{error}</p>}
-          </div>
-        </div>
+        <Sheet label="New task" title="New task" onClose={() => setAddOpen(false)}>
+          <AddTaskForm
+            variant="sheet"
+            autoFocus
+            title={title}
+            onTitleChange={setTitle}
+            priority={priority}
+            onPriorityChange={setPriority}
+            boards={boards}
+            boardId={addBoardId}
+            onBoardChange={setBoardChoice}
+            newBoardName={newBoardName}
+            onNewBoardNameChange={setNewBoardName}
+            onSubmit={addTask}
+            onError={setError}
+          />
+          {error && <p className={cn("mt-3", errorText)}>{error}</p>}
+        </Sheet>
       )}
 
       {boardToRemove && (
@@ -261,7 +252,7 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
         />
       )}
 
-      <main className="container">
+      <main className={pageMain}>
         {view === "active" && (
           <NewBoardForm
             onCreate={createBoard}
@@ -273,8 +264,9 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
             }}
             onClose={() => setBoardFormOpen(false)}
             before={
-              <button
-                className="ghost new-task-toggle"
+              <Button
+                variant="soft"
+                size="sm"
                 type="button"
                 onClick={() => {
                   setBoardFormOpen(false);
@@ -283,7 +275,7 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
                 aria-expanded={inlineOpen}
               >
                 {inlineOpen ? "Cancel" : "+ New task"}
-              </button>
+              </Button>
             }
           />
         )}
@@ -305,7 +297,7 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
           />
         )}
 
-        {error && <p className="error">{error}</p>}
+        {error && <p className={cn("mt-3", errorText)}>{error}</p>}
 
         {tasks !== null && (
           <BoardPills
@@ -318,18 +310,19 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
         )}
 
         {tasks === null ? (
-          <p className="muted">Loading…</p>
+          <p className={mutedText}>Loading…</p>
         ) : tasks.length === 0 ? (
-          <p className="muted">{emptyText}</p>
+          <p className={mutedText}>{emptyText}</p>
         ) : visible.length === 0 ? (
-          <p className="muted">No tasks on this board.</p>
+          <p className={mutedText}>No tasks on this board.</p>
         ) : (
-          <ul className="list">
+          <ul className="mt-4 flex flex-col gap-2.5">
             {visible.map((task) =>
               editingId === task.id ? (
-                <li key={task.id} className="item editing">
-                  <div className="edit-row">
+                <li key={task.id} className="item rounded-xl border border-primary-500/40 bg-gray-900 p-4 shadow-lg shadow-black/20">
+                  <div className="grid gap-2 sm:grid-cols-3">
                     <input
+                      className={cn(field, "sm:col-span-3")}
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
                       maxLength={500}
@@ -337,6 +330,7 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
                       autoFocus
                     />
                     <select
+                      className={field}
                       value={editBoardId}
                       onChange={(e) => setEditBoardId(e.target.value)}
                       aria-label="Edit board"
@@ -349,6 +343,7 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
                       ))}
                     </select>
                     <select
+                      className={field}
                       value={editPriority}
                       onChange={(e) => setEditPriority(e.target.value as Priority)}
                       aria-label="Edit priority"
@@ -360,15 +355,20 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
                       ))}
                     </select>
                   </div>
-                  <div className="edit-buttons">
-                    <button className="ghost" onClick={() => setEditingId(null)}>
+                  <div className="mt-3 flex justify-end gap-2">
+                    <Button variant="ghost" intent="gray" size="sm" onClick={() => setEditingId(null)}>
                       Cancel
-                    </button>
-                    <button onClick={() => saveEdit(task.id)}>Save</button>
+                    </Button>
+                    <Button size="sm" onClick={() => saveEdit(task.id)}>
+                      Save
+                    </Button>
                   </div>
                 </li>
               ) : (
-                <li key={task.id} className={`item prio-${task.priority} ${task.completed ? "done" : ""}`}>
+                <li
+                  key={task.id}
+                  className="item group flex items-start gap-3 rounded-xl border border-gray-800 bg-gray-900 p-3.5 shadow-lg shadow-black/10 transition hover:border-gray-700"
+                >
                   <input
                     type="checkbox"
                     className="check"
@@ -376,39 +376,36 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
                     onChange={() => toggle(task)}
                     aria-label={task.completed ? `Mark "${task.title}" as not done` : `Mark "${task.title}" as done`}
                   />
-                  <div className="body">
-                    <span className="title">{task.title}</span>
-                    <div className="meta">
-                      {boardName(task.boardId) && <span className="board-tag">{boardName(task.boardId)}</span>}
-                      <span className={`badge ${task.priority}`}>{LABEL[task.priority]}</span>
+                  <div className="min-w-0 flex-1">
+                    <span className={cn("block break-words text-base text-gray-100", task.completed && "text-gray-500 line-through")}>
+                      {task.title}
+                    </span>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-xs text-gray-500">
+                      {boardName(task.boardId) && <span className={badgeClass("board")}>{boardName(task.boardId)}</span>}
+                      <span className={badgeClass(task.priority)}>{LABEL[task.priority]}</span>
                       <span>Added {fmt(task.createdAt)}</span>
                       {task.completedAt && <span>· Completed {fmt(task.completedAt)}</span>}
                     </div>
-                    <div className="item-actions">
-                      <button
-                        className="icon-btn"
-                        type="button"
-                        onClick={() => startEdit(task)}
-                        aria-label={`Edit "${task.title}"`}
-                        title="Edit"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M4 20h4L19 9l-4-4L4 16z" />
-                          <path d="M13.5 6.5l4 4" />
-                        </svg>
-                      </button>
-                      <button
-                        className="icon-btn danger"
-                        type="button"
-                        onClick={() => remove(task)}
-                        aria-label={`Delete "${task.title}"`}
-                        title="Delete"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6" />
-                        </svg>
-                      </button>
-                    </div>
+                  </div>
+                  <div className="flex shrink-0 gap-0.5">
+                    <button
+                      className={iconButton}
+                      type="button"
+                      onClick={() => startEdit(task)}
+                      aria-label={`Edit "${task.title}"`}
+                      title="Edit"
+                    >
+                      <PencilIcon />
+                    </button>
+                    <button
+                      className={cn(iconButton, iconButtonDanger)}
+                      type="button"
+                      onClick={() => remove(task)}
+                      aria-label={`Delete "${task.title}"`}
+                      title="Delete"
+                    >
+                      <TrashIcon />
+                    </button>
                   </div>
                 </li>
               )

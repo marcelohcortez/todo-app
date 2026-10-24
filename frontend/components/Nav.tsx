@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import OptionsMenu from "./OptionsMenu";
+import Button from "./ui/Button";
+import Sheet from "./ui/Sheet";
+import { cn } from "./ui/cn";
 
 type Current = "active" | "done" | "notes" | "settings" | "users";
 
@@ -22,15 +25,6 @@ const ICON = {
     </>
   ),
   plus: <path d="M12 5v14M5 12h14" />,
-  settings: (
-    <>
-      <path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h12M20 18h0" />
-      <circle cx="16" cy="6" r="2" />
-      <circle cx="8" cy="12" r="2" />
-      <circle cx="18" cy="18" r="2" />
-    </>
-  ),
-  logout: <path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 16l-4-4 4-4M6 12h10" />,
   options: (
     <>
       <circle cx="5" cy="12" r="1.5" />
@@ -47,6 +41,14 @@ function Icon({ children }: { children: React.ReactNode }) {
     </svg>
   );
 }
+
+// Top links: the active one gets the purple pill.
+const navLink = "rounded-full px-3.5 py-1.5 text-sm font-medium text-gray-400 transition hover:text-gray-100";
+const navLinkActive = "bg-primary-500/15 text-primary-200";
+
+// Bottom bar items on phones.
+const barItem = "flex flex-col items-center gap-0.5 rounded-xl py-1.5 text-[11px] font-medium text-gray-400 transition active:bg-gray-800";
+const barItemActive = "text-primary-200";
 
 interface Props {
   current: Current;
@@ -107,72 +109,57 @@ export default function Nav({ current, onAddTask, onAddNote }: Props) {
 
   return (
     <>
-      <header className="nav">
+      <header className="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-gray-800/80 bg-gray-925/85 px-4 py-3 backdrop-blur-md min-[721px]:px-6">
         <h1>
-          <Link href="/" aria-label="Keeptrack home">
-            <img src="/logo.png" alt="Keeptrack" className="brand-logo" />
+          <Link href="/" aria-label="Keeptrack home" className="flex items-center">
+            <img src="/logo.png" alt="Keeptrack" className="h-7 w-auto" />
           </Link>
         </h1>
-        <nav className="nav-links">
-          <Link href="/" className={current === "active" ? "active" : ""}>
+        <nav aria-label="Pages" className="flex gap-1 rounded-full border border-gray-800 bg-gray-900 p-1 max-[720px]:hidden">
+          <Link href="/" className={cn(navLink, current === "active" && navLinkActive)}>
             To do
           </Link>
-          <Link href="/notes" className={current === "notes" ? "active" : ""}>
+          <Link href="/notes" className={cn(navLink, current === "notes" && navLinkActive)}>
             Notes
           </Link>
-          <Link href="/done" className={current === "done" ? "active" : ""}>
+          <Link href="/done" className={cn(navLink, current === "done" && navLinkActive)}>
             Done
           </Link>
         </nav>
-        <div className="nav-right">
-          <div className="options-anchor">
-            <button
-              className="ghost"
-              type="button"
-              onClick={() => setOptionsOpen((open) => !open)}
-              aria-haspopup="menu"
-              aria-expanded={optionsOpen}
-            >
-              Options
-            </button>
-            {optionsOpen && (
-              <OptionsMenu
-                variant="dropdown"
-                isAdmin={isAdmin}
-                onClose={() => setOptionsOpen(false)}
-                onAddUser={openAddUser}
-                onLogout={logout}
-              />
-            )}
-          </div>
+        <div className="relative max-[720px]:hidden">
+          <Button
+            variant="outlined"
+            intent="gray"
+            size="sm"
+            onClick={() => setOptionsOpen((open) => !open)}
+            aria-haspopup="menu"
+            aria-expanded={optionsOpen}
+          >
+            Options
+          </Button>
+          {optionsOpen && (
+            <OptionsMenu
+              variant="dropdown"
+              isAdmin={isAdmin}
+              onClose={() => setOptionsOpen(false)}
+              onAddUser={openAddUser}
+              onLogout={logout}
+            />
+          )}
         </div>
       </header>
 
       {chooseOpen && (
-        <div className="sheet-backdrop" onClick={() => setChooseOpen(false)}>
-          <div
-            className="sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Add"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="sheet-head">
-              <h2>Add</h2>
-              <button className="ghost" type="button" onClick={() => setChooseOpen(false)}>
-                Cancel
-              </button>
-            </div>
-            <div className="choose">
-              <button type="button" onClick={() => pick("task")}>
-                New task
-              </button>
-              <button type="button" onClick={() => pick("note")}>
-                New note
-              </button>
-            </div>
+        <Sheet label="Add" title="Add" onClose={() => setChooseOpen(false)}>
+          <div className="grid gap-2">
+            <Button size="lg" onClick={() => pick("task")}>
+              New task
+            </Button>
+            <Button variant="outlined" intent="gray" size="lg" onClick={() => pick("note")}>
+              New note
+            </Button>
           </div>
-        </div>
+        </Sheet>
       )}
 
       {optionsOpen && (
@@ -185,25 +172,33 @@ export default function Nav({ current, onAddTask, onAddNote }: Props) {
         />
       )}
 
-      <nav className="bottom-bar" aria-label="Main">
-        <Link href="/" className={current === "active" ? "active" : ""} aria-label="To do">
+      <nav
+        aria-label="Main"
+        className="fixed inset-x-3 bottom-[calc(12px+env(safe-area-inset-bottom))] z-[5] hidden grid-cols-5 items-center gap-1 rounded-2xl border border-gray-800 bg-gray-900/95 p-2 shadow-2xl shadow-black/40 backdrop-blur-md max-[720px]:grid"
+      >
+        <Link href="/" className={cn(barItem, current === "active" && barItemActive)} aria-label="To do">
           <Icon>{ICON.home}</Icon>
           <span>To do</span>
         </Link>
-        <Link href="/notes" className={current === "notes" ? "active" : ""} aria-label="Notes">
+        <Link href="/notes" className={cn(barItem, current === "notes" && barItemActive)} aria-label="Notes">
           <Icon>{ICON.notes}</Icon>
           <span>Notes</span>
         </Link>
-        <button type="button" className="bottom-add" onClick={() => setChooseOpen(true)} aria-label="Add a task or a note">
+        <button
+          type="button"
+          className="mx-auto flex size-12 items-center justify-center rounded-full bg-gradient-to-b from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-900/40 transition active:brightness-95"
+          onClick={() => setChooseOpen(true)}
+          aria-label="Add a task or a note"
+        >
           <Icon>{ICON.plus}</Icon>
         </button>
-        <Link href="/done" className={current === "done" ? "active" : ""} aria-label="Done">
+        <Link href="/done" className={cn(barItem, current === "done" && barItemActive)} aria-label="Done">
           <Icon>{ICON.done}</Icon>
           <span>Done</span>
         </Link>
         <button
           type="button"
-          className={current === "settings" ? "active" : ""}
+          className={cn(barItem, current === "settings" && barItemActive)}
           onClick={() => setOptionsOpen(true)}
           aria-label="Options"
         >

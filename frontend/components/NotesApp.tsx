@@ -6,6 +6,11 @@ import Nav from "./Nav";
 import NoteField from "./NoteField";
 import { useLiveRefresh } from "./useLiveRefresh";
 import { useToast } from "./Toast";
+import Button from "./ui/Button";
+import Sheet from "./ui/Sheet";
+import { cn } from "./ui/cn";
+import { PencilIcon, TrashIcon } from "./ui/icons";
+import { errorText, iconButton, iconButtonDanger, mutedText, pageMain } from "./ui/styles";
 import type { Note } from "@/lib/types";
 
 function fmt(iso: string): string {
@@ -45,52 +50,47 @@ function NoteItem({ note, onEdit, onDelete }: NoteItemProps) {
   }, [note.body, expanded]);
 
   return (
-    <li className="item">
-      <div className="body">
-        <Link href={`/notes/${note.id}`} className="note-link">
-          <span ref={previewRef} className={`note-preview${expanded ? " expanded" : ""}`}>
+    <li className="item flex items-start gap-3 rounded-xl border border-gray-800 bg-gray-900 p-3.5 shadow-lg shadow-black/10 transition hover:border-gray-700">
+      <div className="min-w-0 flex-1">
+        <Link href={`/notes/${note.id}`} className="block rounded-lg outline-2 outline-primary-500 focus-visible:outline">
+          <span
+            ref={previewRef}
+            className={cn("block whitespace-pre-wrap break-words text-base text-gray-100", !expanded && "line-clamp-3")}
+          >
             {note.body}
           </span>
-          <span className="meta">
+          <span className="mt-1.5 flex flex-wrap gap-x-2.5 gap-y-1 text-xs text-gray-500">
             <span>Added {fmt(note.createdAt)}</span>
             {note.updatedAt !== note.createdAt && <span>Edited {fmt(note.updatedAt)}</span>}
           </span>
         </Link>
         {(overflows || expanded) && (
-          <button
-            className="ghost note-toggle"
+          <Button
+            variant="ghost"
+            intent="primary"
+            size="xs"
             type="button"
+            className="-ml-2 mt-1"
             onClick={() => setExpanded((open) => !open)}
             aria-expanded={expanded}
           >
             {expanded ? "Show less" : "Show more"}
-          </button>
+          </Button>
         )}
-        <div className="item-actions">
-          <button
-            className="icon-btn"
-            type="button"
-            onClick={() => onEdit(note)}
-            aria-label="Edit note"
-            title="Edit"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M4 20h4L19 9l-4-4L4 16z" />
-              <path d="M13.5 6.5l4 4" />
-            </svg>
-          </button>
-          <button
-            className="icon-btn danger"
-            type="button"
-            onClick={() => onDelete(note)}
-            aria-label="Delete note"
-            title="Delete"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6" />
-            </svg>
-          </button>
-        </div>
+      </div>
+      <div className="flex shrink-0 gap-0.5">
+        <button className={iconButton} type="button" onClick={() => onEdit(note)} aria-label="Edit note" title="Edit">
+          <PencilIcon />
+        </button>
+        <button
+          className={cn(iconButton, iconButtonDanger)}
+          type="button"
+          onClick={() => onDelete(note)}
+          aria-label="Delete note"
+          title="Delete"
+        >
+          <TrashIcon />
+        </button>
       </div>
     </li>
   );
@@ -202,65 +202,61 @@ export default function NotesApp() {
       <Nav current="notes" onAddNote={() => setSheetOpen(true)} />
 
       {sheetOpen && (
-        <div className="sheet-backdrop" onClick={() => setSheetOpen(false)}>
-          <div
-            className="sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label="New note"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="sheet-head">
-              <h2>New note</h2>
-              <button className="ghost" type="button" onClick={() => setSheetOpen(false)}>
-                Cancel
-              </button>
-            </div>
-            <form className="add-sheet" onSubmit={addNote}>
-              <NoteField value={body} onChange={setBody} onError={setError} autoFocus />
-              <button type="submit">Save note</button>
-            </form>
-            {error && <p className="error">{error}</p>}
-          </div>
-        </div>
+        <Sheet label="New note" title="New note" onClose={() => setSheetOpen(false)}>
+          <form className="grid gap-2" onSubmit={addNote}>
+            <NoteField value={body} onChange={setBody} onError={setError} autoFocus />
+            <Button type="submit" size="lg">
+              Save note
+            </Button>
+          </form>
+          {error && <p className={cn("mt-3", errorText)}>{error}</p>}
+        </Sheet>
       )}
 
-      <main className="container">
-        <button
-          className="ghost new-note-toggle"
+      <main className={pageMain}>
+        <Button
+          variant="soft"
+          size="sm"
           type="button"
           onClick={() => setInlineOpen((open) => !open)}
           aria-expanded={inlineOpen}
         >
           {inlineOpen ? "Cancel" : "+ New note"}
-        </button>
+        </Button>
 
         {inlineOpen && (
-          <form className="add-note" onSubmit={addNote}>
+          <form className="mt-4 grid gap-2 rounded-xl border border-gray-800 bg-gray-900 p-3 shadow-lg shadow-black/20" onSubmit={addNote}>
             <NoteField value={body} onChange={setBody} onError={setError} autoFocus />
-            <button type="submit">Save note</button>
+            <div className="flex justify-end">
+              <Button type="submit">Save note</Button>
+            </div>
           </form>
         )}
 
-        {error && <p className="error">{error}</p>}
+        {error && <p className={cn("mt-3", errorText)}>{error}</p>}
 
         {notes === null ? (
-          <p className="muted">Loading…</p>
+          <p className={cn("mt-5", mutedText)}>Loading…</p>
         ) : notes.length === 0 ? (
-          <p className="muted">No notes yet. Write one above, or use + on your phone.</p>
+          <p className={cn("mt-5", mutedText)}>No notes yet. Write one above, or use + on your phone.</p>
         ) : (
-          <ul className="list">
+          <ul className="mt-5 flex flex-col gap-2.5">
             {notes.map((note) =>
               editingId === note.id ? (
-                <li key={note.id} className="item editing">
+                <li key={note.id} className="item grid gap-2 rounded-xl border border-primary-500/40 bg-gray-900 p-3.5 shadow-lg shadow-black/20">
                   <NoteField value={editBody} onChange={setEditBody} onError={setError} autoFocus />
-                  <div className="edit-buttons">
-                    <button className="ghost" type="button" onClick={() => setEditingId(null)}>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="ghost" intent="gray" size="sm" type="button" onClick={() => setEditingId(null)}>
                       Cancel
-                    </button>
-                    <button type="button" onClick={() => saveEdit(note.id)} disabled={editBody.trim().length === 0}>
+                    </Button>
+                    <Button
+                      size="sm"
+                      type="button"
+                      onClick={() => saveEdit(note.id)}
+                      disabled={editBody.trim().length === 0}
+                    >
                       Save
-                    </button>
+                    </Button>
                   </div>
                 </li>
               ) : (

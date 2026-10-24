@@ -14,8 +14,8 @@ The app is split into two independent Next.js projects. Each one deploys to its 
 | `frontend/` | Pages and components (login, tasks, done, settings) and styles    | `frontend`            |
 | `backend/`  | API routes (`/api/*`), MongoDB access, sessions, MCP endpoint      | `backend`             |
 
-The look of the app (colours, radii, spacing and shared components) is defined in
-`frontend/app/design-system.css`. See `frontend/DESIGN.md` before changing styles.
+The look of the app is built with Tailwind CSS and the Tailus UI palette and styles (`@tailus/themer`). The shared
+styles are in `frontend/components/ui/`. See `frontend/DESIGN.md` before changing styles.
 
 The browser only talks to the frontend. Its `next.config.mjs` forwards `/api/*` to the backend, so the
 session cookie is first-party and no CORS setup is needed.
