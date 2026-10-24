@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 import type { Collection, Filter } from "mongodb";
+import { createBoard } from "./boards";
 import { getDb } from "./mongodb";
 import { notifyChanged } from "./realtime";
 import { PRIORITIES, PRIORITY_RANK } from "./types";
@@ -77,6 +78,9 @@ export async function listTasks(
   return docs.map(toTask);
 }
 
+export const DEFAULT_BOARD_NAME = "general";
+
+/** Creates a task. Without a board it goes to the "general" board, which is created if it does not exist yet. */
 export async function createTask(
   userId: string,
   title: string,
@@ -84,12 +88,13 @@ export async function createTask(
   boardId: string | null
 ): Promise<Task> {
   const now = new Date();
+  const targetBoardId = boardId ?? (await createBoard(userId, DEFAULT_BOARD_NAME)).id;
   const doc: TaskDoc = {
     _id: new ObjectId(),
     userId: new ObjectId(userId),
     title,
     priority,
-    boardId: boardId ? new ObjectId(boardId) : null,
+    boardId: new ObjectId(targetBoardId),
     completed: false,
     createdAt: now,
     completedAt: null,

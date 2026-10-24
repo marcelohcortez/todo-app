@@ -64,7 +64,8 @@ const TOOLS = [
   },
   {
     name: "create_task",
-    description: "Create a task. Priority defaults to normal. boardId is optional and must be an existing board.",
+    description:
+      "Create a task. Priority defaults to normal. boardId is optional and must be an existing board. Without boardId the task goes to the \"general\" board.",
     inputSchema: {
       type: "object",
       properties: { title: { type: "string" }, priority: priorityProp, boardId: boardIdProp },
