@@ -2,6 +2,7 @@ import { ObjectId } from "mongodb";
 import type { Collection } from "mongodb";
 import { getDb } from "./mongodb";
 import { notifyChanged } from "./realtime";
+import { escapeRegex } from "./search";
 import type { Board, BoardDoc, TaskDoc } from "./types";
 
 const MAX_NAME = 40;
@@ -27,6 +28,15 @@ export async function listBoards(userId: string): Promise<Board[]> {
     .sort({ createdAt: 1 })
     .toArray();
   return docs.map(toBoard);
+}
+
+/** The ids of the user's boards whose name contains the text, ignoring case. */
+export async function boardIdsNamed(userId: string, text: string): Promise<ObjectId[]> {
+  const docs = await (await boardsCollection()).find(
+    { userId: new ObjectId(userId), name: { $regex: escapeRegex(text), $options: "i" } },
+    { projection: { _id: 1 } }
+  ).toArray();
+  return docs.map((d) => d._id);
 }
 
 export interface BoardSummary extends Board {
@@ -140,8 +150,4 @@ export async function removeBoard(userId: string, id: string, removal: BoardRemo
   await boards.deleteOne({ _id: boardId, userId: uid });
   await notifyChanged(userId);
   return true;
-}
-
-function escapeRegex(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

@@ -3,11 +3,13 @@ import { ObjectId } from "mongodb";
 import { getCurrentUserId, unauthorized } from "@/lib/auth";
 import { boardBelongsToUser } from "@/lib/boards";
 import { parsePage } from "@/lib/pagination";
+import { searchQuery } from "@/lib/search";
 import { cleanTitle, createTask, isPriority, isStatusFilter, listTaskPage } from "@/lib/tasks";
 
-// GET /api/tasks?status=active|done|all&page=1&boardId=<id>|none
+// GET /api/tasks?status=active|done|all&page=1&boardId=<id>|none&q=<text>
 // Returns one page of 20 tasks, with the total count and the number of pages.
 // boardId limits the list to one board; "none" means tasks with no board.
+// q keeps the tasks whose title contains the text. Text under 3 characters is ignored.
 export async function GET(req: NextRequest) {
   const userId = await getCurrentUserId();
   if (!userId) return unauthorized();
@@ -28,7 +30,8 @@ export async function GET(req: NextRequest) {
     boardId = boardParam;
   }
 
-  return NextResponse.json(await listTaskPage(userId, status, boardId, parsePage(params.get("page"))));
+  const query = searchQuery(params.get("q"));
+  return NextResponse.json(await listTaskPage(userId, status, boardId, parsePage(params.get("page")), query));
 }
 
 // POST /api/tasks  { title, priority?, boardId? }

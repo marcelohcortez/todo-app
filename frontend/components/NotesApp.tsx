@@ -5,6 +5,7 @@ import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import Nav from "./Nav";
 import NoteField from "./NoteField";
 import Pagination from "./Pagination";
+import SearchBar from "./SearchBar";
 import { useLiveRefresh } from "./useLiveRefresh";
 import { useToast } from "./Toast";
 import Button from "./ui/Button";
@@ -102,6 +103,8 @@ export default function NotesApp() {
   // The page of 20 notes on screen, and how many pages there are.
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(1);
+  // The text the notes are searched for. "" shows everything.
+  const [query, setQuery] = useState("");
   const [error, setError] = useState("");
   const toast = useToast();
 
@@ -115,7 +118,8 @@ export default function NotesApp() {
   const [editBody, setEditBody] = useState("");
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/notes?page=${page}`, { cache: "no-store" });
+    const searchParam = query ? `&q=${encodeURIComponent(query)}` : "";
+    const res = await fetch(`/api/notes?page=${page}${searchParam}`, { cache: "no-store" });
     if (res.status === 401) {
       window.location.href = "/login";
       return;
@@ -125,7 +129,13 @@ export default function NotesApp() {
     setPageCount(data.pageCount);
     // The server moves a page that no longer exists to the last page.
     setPage(data.page);
-  }, [page]);
+  }, [page, query]);
+
+  // A new search starts from the first page. Called by SearchBar after typing pauses.
+  function search(text: string) {
+    setQuery(text);
+    setPage(1);
+  }
 
   useEffect(() => {
     load();
@@ -242,10 +252,14 @@ export default function NotesApp() {
 
         {error && <p className={cn("mt-3", errorText)}>{error}</p>}
 
+        <SearchBar label="Search notes" onSearch={search} />
+
         {notes === null ? (
           <p className={cn("mt-5", mutedText)}>Loading…</p>
         ) : notes.length === 0 ? (
-          <p className={cn("mt-5", mutedText)}>No notes yet. Write one above, or use + on your phone.</p>
+          <p className={cn("mt-5", mutedText)}>
+            {query ? `No notes match "${query}".` : "No notes yet. Write one above, or use + on your phone."}
+          </p>
         ) : (
           <ul className="mt-5 flex flex-col gap-2.5">
             {notes.map((note) =>

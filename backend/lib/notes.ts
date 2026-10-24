@@ -2,6 +2,7 @@ import { ObjectId } from "mongodb";
 import type { Collection, Filter } from "mongodb";
 import { getDb } from "./mongodb";
 import { PAGE_SIZE, pageOf } from "./pagination";
+import { escapeRegex } from "./search";
 import { notifyChanged } from "./realtime";
 import type { Note, NoteDeletionDoc, NoteDoc } from "./types";
 
@@ -41,8 +42,10 @@ export interface NotePage {
 }
 
 /** One page of notes, newest first, PAGE_SIZE each. The id is a tie-breaker, so pages never overlap. */
-export async function listNotes(userId: string, requestedPage: number): Promise<NotePage> {
-  const filter = { userId: new ObjectId(userId) };
+/** `query` keeps only the notes whose text contains it, ignoring case. */
+export async function listNotes(userId: string, requestedPage: number, query?: string): Promise<NotePage> {
+  const filter: Filter<NoteDoc> = { userId: new ObjectId(userId) };
+  if (query) filter.body = { $regex: escapeRegex(query), $options: "i" };
   const col = await notesCollection();
   const total = await col.countDocuments(filter);
   const { page, pageCount, skip } = pageOf(total, requestedPage);

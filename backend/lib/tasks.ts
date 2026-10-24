@@ -1,8 +1,9 @@
 import { ObjectId } from "mongodb";
 import type { Collection, Document, Filter } from "mongodb";
-import { createBoard } from "./boards";
+import { boardIdsNamed, createBoard } from "./boards";
 import { getDb } from "./mongodb";
 import { PAGE_SIZE, pageOf } from "./pagination";
+import { escapeRegex } from "./search";
 import { notifyChanged } from "./realtime";
 import { PRIORITIES, PRIORITY_RANK } from "./types";
 import type { Priority, Task, TaskDoc } from "./types";
@@ -80,12 +81,25 @@ export async function purgeExpiredDoneTasks(userId?: string): Promise<number> {
 }
 
 // The tasks a list shows. `boardId` limits it to one board: null for tasks with no board, undefined for all.
-function taskFilter(userId: string, status: StatusFilter, boardId?: string | null): Filter<TaskDoc> {
+// `query` keeps the tasks whose title contains it, or that sit on a board whose name contains it (ignoring case).
+// boardIds are the boards that match the query. $and keeps this apart from the $or used for the done window.
+function taskFilter(
+  userId: string,
+  status: StatusFilter,
+  boardId: string | null | undefined,
+  query: string | undefined,
+  boardIds: ObjectId[]
+): Filter<TaskDoc> {
   const filter: Filter<TaskDoc> = { userId: new ObjectId(userId) };
   if (status === "active") filter.completed = false;
   if (status === "done") Object.assign(filter, doneSince(doneCutoff()));
   if (boardId === null) filter.boardId = null;
   else if (boardId !== undefined) filter.boardId = new ObjectId(boardId);
+  if (query) {
+    const matches: Filter<TaskDoc>[] = [{ title: { $regex: escapeRegex(query), $options: "i" } }];
+    if (boardIds.length > 0) matches.push({ boardId: { $in: boardIds } });
+    filter.$and = [{ $or: matches }];
+  }
   return filter;
 }
 
@@ -103,11 +117,13 @@ export async function listTaskPage(
   userId: string,
   status: StatusFilter,
   boardId: string | null | undefined,
-  requestedPage: number
+  requestedPage: number,
+  query?: string
 ): Promise<TaskPage> {
   await purgeExpiredDoneTasks(userId);
 
-  const filter = taskFilter(userId, status, boardId);
+  const boardIds = query ? await boardIdsNamed(userId, query) : [];
+  const filter = taskFilter(userId, status, boardId, query, boardIds);
   const col = await tasksCollection();
   const total = await col.countDocuments(filter);
   const { page, pageCount, skip } = pageOf(total, requestedPage);
@@ -138,7 +154,7 @@ export async function listTasks(
 ): Promise<Task[]> {
   await purgeExpiredDoneTasks(userId);
 
-  const filter = taskFilter(userId, status, boardId);
+  const filter = taskFilter(userId, status, boardId, undefined, []);
   const docs = await (await tasksCollection()).find(filter).toArray();
 
   if (status === "done") {

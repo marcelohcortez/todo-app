@@ -8,6 +8,7 @@ import type { BoardRemoval } from "./DeleteBoardSheet";
 import MicButton from "./MicButton";
 import NewBoardForm from "./NewBoardForm";
 import Pagination from "./Pagination";
+import SearchBar from "./SearchBar";
 import Nav from "./Nav";
 import { useLiveRefresh } from "./useLiveRefresh";
 import { useToast } from "./Toast";
@@ -47,6 +48,8 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(1);
   const [total, setTotal] = useState(0);
+  // The text the list is searched for. "" shows everything.
+  const [query, setQuery] = useState("");
   // The board the user asked to remove. Its confirmation sheet is open while this is set.
   const [boardToRemove, setBoardToRemove] = useState<Board | null>(null);
 
@@ -73,8 +76,9 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
 
   const load = useCallback(async () => {
     const boardQuery = filter === ALL ? "" : `&boardId=${filter}`;
+    const searchParam = query ? `&q=${encodeURIComponent(query)}` : "";
     const [tasksRes, boardsRes] = await Promise.all([
-      fetch(`/api/tasks?status=${view}&page=${page}${boardQuery}`, { cache: "no-store" }),
+      fetch(`/api/tasks?status=${view}&page=${page}${boardQuery}${searchParam}`, { cache: "no-store" }),
       fetch("/api/boards", { cache: "no-store" }),
     ]);
     if (tasksRes.status === 401 || boardsRes.status === 401) {
@@ -89,7 +93,7 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
     // The server moves a page that no longer exists (for example, the last item was removed) to the last page.
     setPage(data.page);
     setBoards(boardData.boards);
-  }, [view, filter, page]);
+  }, [view, filter, page, query]);
 
   useEffect(() => {
     load();
@@ -227,6 +231,12 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
     return null;
   }
 
+  // A new search starts from the first page. Called by SearchBar after typing pauses.
+  function search(text: string) {
+    setQuery(text);
+    setPage(1);
+  }
+
   const boardName = (id: string | null) => boards.find((b) => b.id === id)?.name;
 
   const emptyText =
@@ -332,10 +342,14 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
           />
         )}
 
+        <SearchBar label={view === "active" ? "Search tasks" : "Search completed tasks"} onSearch={search} />
+
         {tasks === null ? (
           <p className={mutedText}>Loading…</p>
         ) : total === 0 ? (
-          <p className={mutedText}>{filter === ALL ? emptyText : "No tasks on this board."}</p>
+          <p className={mutedText}>
+            {query ? `No tasks match "${query}".` : filter === ALL ? emptyText : "No tasks on this board."}
+          </p>
         ) : (
           <ul className="mt-4 flex flex-col gap-2.5">
             {tasks.map((task) =>
