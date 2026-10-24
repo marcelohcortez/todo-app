@@ -356,9 +356,9 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
             <Spinner label="Searching" />
           </div>
         ) : tasks === null ? (
-          <p className={mutedText}>Loading…</p>
+          <p className={cn("mt-4", mutedText)}>Loading…</p>
         ) : total === 0 ? (
-          <p className={mutedText}>
+          <p className={cn("mt-4", mutedText)}>
             {query ? `No tasks match "${query}".` : filter === ALL ? emptyText : "No tasks on this board."}
           </p>
         ) : (
