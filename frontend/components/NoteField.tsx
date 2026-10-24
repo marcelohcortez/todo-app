@@ -20,9 +20,9 @@ export default function NoteField({ value, onChange, onError, autoFocus = false 
   const spokenPrefix = useRef("");
 
   return (
-    <div className="relative">
+    <div className="flex items-start gap-2">
       <textarea
-        className={cn(textareaField, "pr-12")}
+        className={textareaField}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Write a note, or tap the mic and speak"

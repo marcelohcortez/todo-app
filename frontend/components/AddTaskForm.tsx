@@ -57,9 +57,9 @@ export default function AddTaskForm({
       )}
       onSubmit={onSubmit}
     >
-      <div className="relative col-span-2 min-[521px]:col-span-3">
+      <div className="col-span-2 flex items-center gap-2 min-[521px]:col-span-3">
         <input
-          className={cn(field, "pr-12")}
+          className={field}
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
           placeholder="What needs doing?"

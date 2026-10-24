@@ -1,10 +1,11 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import AddTaskForm, { NEW_BOARD } from "./AddTaskForm";
 import BoardPills, { ALL } from "./BoardPills";
 import DeleteBoardSheet from "./DeleteBoardSheet";
 import type { BoardRemoval } from "./DeleteBoardSheet";
+import MicButton from "./MicButton";
 import NewBoardForm from "./NewBoardForm";
 import Nav from "./Nav";
 import { useLiveRefresh } from "./useLiveRefresh";
@@ -59,6 +60,8 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
   const [editTitle, setEditTitle] = useState("");
   const [editPriority, setEditPriority] = useState<Priority>("normal");
   const [editBoardId, setEditBoardId] = useState("");
+  // Text typed before dictation starts is kept; the spoken words are added after it.
+  const editSpokenPrefix = useRef("");
 
   const load = useCallback(async () => {
     const [tasksRes, boardsRes] = await Promise.all([
@@ -321,14 +324,23 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
               editingId === task.id ? (
                 <li key={task.id} className="item rounded-xl border border-primary-500/40 bg-gray-900 p-4 shadow-lg shadow-black/20">
                   <div className="grid gap-2 sm:grid-cols-3">
-                    <input
-                      className={cn(field, "sm:col-span-3")}
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                      maxLength={500}
-                      aria-label="Edit task title"
-                      autoFocus
-                    />
+                    <div className="flex items-center gap-2 sm:col-span-3">
+                      <input
+                        className={field}
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        maxLength={500}
+                        aria-label="Edit task title"
+                        autoFocus
+                      />
+                      <MicButton
+                        onStart={() => {
+                          editSpokenPrefix.current = editTitle.trim() ? `${editTitle.trimEnd()} ` : "";
+                        }}
+                        onResult={(text) => setEditTitle((editSpokenPrefix.current + text).slice(0, 500))}
+                        onError={setError}
+                      />
+                    </div>
                     <select
                       className={field}
                       value={editBoardId}

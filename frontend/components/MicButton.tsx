@@ -98,7 +98,7 @@ export default function MicButton({ onStart, onResult, onError }: Props) {
     <button
       type="button"
       className={cn(
-        "absolute right-1.5 top-1.5 inline-flex size-8 items-center justify-center rounded-full transition",
+        "inline-flex size-9 shrink-0 items-center justify-center rounded-full transition",
         "outline-2 outline-primary-500 focus-visible:outline",
         listening ? "animate-pulse bg-danger-500/15 text-danger-200" : "text-gray-400 hover:bg-gray-800 hover:text-gray-100"
       )}
