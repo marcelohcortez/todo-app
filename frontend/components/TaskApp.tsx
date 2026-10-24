@@ -56,6 +56,9 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
   // The "+ New board" form. It is closed whenever the add-task form is open, and the reverse.
   const [boardFormOpen, setBoardFormOpen] = useState(false);
 
+  // Tasks whose completion is being saved. They stay dimmed until the list has reloaded without them.
+  const [pendingIds, setPendingIds] = useState<string[]>([]);
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editPriority, setEditPriority] = useState<Priority>("normal");
@@ -159,6 +162,7 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
   }
 
   function toggle(task: Task) {
+    setPendingIds((ids) => [...ids, task.id]);
     run(
       () =>
         api(`/api/tasks/${task.id}`, {
@@ -166,7 +170,7 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
           body: JSON.stringify({ completed: !task.completed }),
         }),
       task.completed ? "Task reopened" : "Task completed"
-    );
+    ).finally(() => setPendingIds((ids) => ids.filter((id) => id !== task.id)));
   }
 
   function remove(task: Task) {
@@ -223,6 +227,12 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
 
   return (
     <>
+      {pendingIds.length > 0 && (
+        <div role="progressbar" aria-label="Saving changes" className="fixed inset-x-0 top-0 z-50 h-0.5 bg-primary-500/20">
+          <div className="h-full w-full animate-pulse bg-primary-500" />
+        </div>
+      )}
+
       <Nav current={view} onAddTask={view === "active" ? () => setAddOpen(true) : undefined} />
 
       {view === "active" && addOpen && (
@@ -379,12 +389,24 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
               ) : (
                 <li
                   key={task.id}
-                  className="item group flex items-start gap-3 rounded-xl border border-gray-800 bg-gray-900 p-3.5 shadow-lg shadow-black/10 transition hover:border-gray-700"
+                  aria-busy={pendingIds.includes(task.id)}
+                  className={cn(
+                    "item group relative flex items-start gap-3 rounded-xl border border-gray-800 bg-gray-900 p-3.5 shadow-lg shadow-black/10 transition hover:border-gray-700",
+                    pendingIds.includes(task.id) && "opacity-50"
+                  )}
                 >
+                  {pendingIds.includes(task.id) && (
+                    <span
+                      role="status"
+                      aria-label="Saving"
+                      className="pointer-events-none absolute left-3.5 top-3.5 size-5 animate-spin rounded-full border-2 border-gray-600 border-t-primary-400"
+                    />
+                  )}
                   <input
                     type="checkbox"
                     className="check"
                     checked={task.completed}
+                    disabled={pendingIds.includes(task.id)}
                     onChange={() => toggle(task)}
                     aria-label={task.completed ? `Mark "${task.title}" as not done` : `Mark "${task.title}" as done`}
                   />
