@@ -223,7 +223,7 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
   const boardName = (id: string | null) => boards.find((b) => b.id === id)?.name;
 
   const emptyText =
-    view === "active" ? "Nothing to do. Add a task above." : "No completed tasks yet.";
+    view === "active" ? "Nothing to do. Add a task above." : "Nothing completed in the last 30 days.";
 
   return (
     <>

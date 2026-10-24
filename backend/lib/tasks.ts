@@ -48,6 +48,36 @@ async function tasksCollection(): Promise<Collection<TaskDoc>> {
   return (await getDb()).collection<TaskDoc>("tasks");
 }
 
+// Completed tasks are shown for this many days, then deleted from the database.
+export const DONE_RETENTION_DAYS = 30;
+
+function doneCutoff(): Date {
+  return new Date(Date.now() - DONE_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+}
+
+// A task saved without completedAt falls back to updatedAt, so it is not kept forever.
+function doneBefore(cutoff: Date): Filter<TaskDoc> {
+  return {
+    completed: true,
+    $or: [{ completedAt: { $lt: cutoff } }, { completedAt: null, updatedAt: { $lt: cutoff } }],
+  };
+}
+
+function doneSince(cutoff: Date): Filter<TaskDoc> {
+  return {
+    completed: true,
+    $or: [{ completedAt: { $gte: cutoff } }, { completedAt: null, updatedAt: { $gte: cutoff } }],
+  };
+}
+
+/** Deletes completed tasks older than the retention period. With a userId, only that user's tasks. */
+export async function purgeExpiredDoneTasks(userId?: string): Promise<number> {
+  const filter = doneBefore(doneCutoff());
+  if (userId) filter.userId = new ObjectId(userId);
+  const res = await (await tasksCollection()).deleteMany(filter);
+  return res.deletedCount;
+}
+
 /**
  * `boardId` limits the list to one board. Pass null for tasks with no board, or leave it undefined for all tasks.
  */
@@ -56,9 +86,11 @@ export async function listTasks(
   status: StatusFilter = "active",
   boardId?: string | null
 ): Promise<Task[]> {
+  await purgeExpiredDoneTasks(userId);
+
   const filter: Filter<TaskDoc> = { userId: new ObjectId(userId) };
   if (status === "active") filter.completed = false;
-  if (status === "done") filter.completed = true;
+  if (status === "done") Object.assign(filter, doneSince(doneCutoff()));
   if (boardId === null) filter.boardId = null;
   else if (boardId !== undefined) filter.boardId = new ObjectId(boardId);
 
