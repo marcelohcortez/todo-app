@@ -1,6 +1,8 @@
 import TaskApp from "@/components/TaskApp";
+import { requireSignedIn } from "@/lib/session";
 
-// Not signed in? TaskApp gets a 401 from the API and sends the browser to /login.
-export default function Page() {
+// Checked on the server first, so a signed-out visitor is sent to /login without seeing the app.
+export default async function Page() {
+  await requireSignedIn();
   return <TaskApp view="active" />;
 }

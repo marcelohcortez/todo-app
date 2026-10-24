@@ -1,6 +1,7 @@
 import NotesApp from "@/components/NotesApp";
+import { requireSignedIn } from "@/lib/session";
 
-// Not signed in? NotesApp gets a 401 from the API and sends the browser to /login.
-export default function NotesPage() {
+export default async function NotesPage() {
+  await requireSignedIn();
   return <NotesApp />;
 }

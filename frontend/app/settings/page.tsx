@@ -1,5 +1,7 @@
 import SettingsPanel from "@/components/SettingsPanel";
+import { requireSignedIn } from "@/lib/session";
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  await requireSignedIn();
   return <SettingsPanel />;
 }
