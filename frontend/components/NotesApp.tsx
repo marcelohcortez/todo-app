@@ -11,6 +11,7 @@ import { useToast } from "./Toast";
 import Button from "./ui/Button";
 import Sheet from "./ui/Sheet";
 import { cn } from "./ui/cn";
+import Spinner from "./ui/Spinner";
 import { PencilIcon, TrashIcon } from "./ui/icons";
 import { errorText, iconButton, iconButtonDanger, mutedText, pageMain } from "./ui/styles";
 import type { Note } from "@/lib/types";
@@ -258,9 +259,13 @@ export default function NotesApp() {
 
         {error && <p className={cn("mt-3", errorText)}>{error}</p>}
 
-        <SearchBar label="Search notes" onSearch={search} searching={searching} />
+        <SearchBar label="Search notes" onSearch={search} />
 
-        {notes === null ? (
+        {searching ? (
+          <div className="mt-8 flex justify-center">
+            <Spinner label="Searching" />
+          </div>
+        ) : notes === null ? (
           <p className={cn("mt-5", mutedText)}>Loading…</p>
         ) : notes.length === 0 ? (
           <p className={cn("mt-5", mutedText)}>
@@ -293,7 +298,9 @@ export default function NotesApp() {
           </ul>
         )}
 
-        {notes !== null && notes.length > 0 && <Pagination page={page} pageCount={pageCount} onPage={setPage} />}
+        {notes !== null && !searching && notes.length > 0 && (
+          <Pagination page={page} pageCount={pageCount} onPage={setPage} />
+        )}
       </main>
     </>
   );

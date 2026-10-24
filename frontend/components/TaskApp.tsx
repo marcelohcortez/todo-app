@@ -15,6 +15,7 @@ import { useToast } from "./Toast";
 import Button from "./ui/Button";
 import Sheet from "./ui/Sheet";
 import { cn } from "./ui/cn";
+import Spinner from "./ui/Spinner";
 import { PencilIcon, TrashIcon } from "./ui/icons";
 import { badgeClass, errorText, field, iconButton, iconButtonDanger, mutedText, pageMain } from "./ui/styles";
 import { PRIORITIES } from "@/lib/types";
@@ -348,13 +349,13 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
           />
         )}
 
-        <SearchBar
-          label={view === "active" ? "Search tasks" : "Search completed tasks"}
-          onSearch={search}
-          searching={searching}
-        />
+        <SearchBar label={view === "active" ? "Search tasks" : "Search completed tasks"} onSearch={search} />
 
-        {tasks === null ? (
+        {searching ? (
+          <div className="mt-8 flex justify-center">
+            <Spinner label="Searching" />
+          </div>
+        ) : tasks === null ? (
           <p className={mutedText}>Loading…</p>
         ) : total === 0 ? (
           <p className={mutedText}>
@@ -479,7 +480,9 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
           </ul>
         )}
 
-        {tasks !== null && total > 0 && <Pagination page={page} pageCount={pageCount} onPage={setPage} />}
+        {tasks !== null && !searching && total > 0 && (
+          <Pagination page={page} pageCount={pageCount} onPage={setPage} />
+        )}
       </main>
     </>
   );

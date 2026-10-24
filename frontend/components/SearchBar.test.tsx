@@ -45,13 +45,6 @@ describe("SearchBar", () => {
     expect(onSearch).toHaveBeenLastCalledWith("");
   });
 
-  it("shows a spinner in the field only while the search is loading", () => {
-    const { rerender } = render(<SearchBar label="Search tasks" onSearch={vi.fn()} searching={false} />);
-    expect(screen.queryByRole("status", { name: "Searching" })).toBeNull();
-    rerender(<SearchBar label="Search tasks" onSearch={vi.fn()} searching />);
-    expect(screen.getByRole("status", { name: "Searching" })).toBeTruthy();
-  });
-
   it("clears the text and the search with the × button", () => {
     const onSearch = vi.fn();
     render(<SearchBar label="Search tasks" onSearch={onSearch} />);
