@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import ChangePasswordForm from "./ChangePasswordForm";
 import Nav from "./Nav";
 import Button from "./ui/Button";
 import { cn } from "./ui/cn";
@@ -126,6 +127,8 @@ export default function SettingsPanel() {
     <>
       <Nav current="settings" />
       <main className={cn(pageMain, "grid gap-5")}>
+        <ChangePasswordForm />
+
         <section className={card}>
           <h2 className={headingText}>AI access (MCP)</h2>
           <p className={cn("mt-1", mutedText)}>
