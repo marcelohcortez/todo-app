@@ -48,8 +48,9 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(1);
   const [total, setTotal] = useState(0);
-  // The text the list is searched for. "" shows everything.
+  // The text the list is searched for. "" shows everything. `searching` is true while that search loads.
   const [query, setQuery] = useState("");
+  const [searching, setSearching] = useState(false);
   // The board the user asked to remove. Its confirmation sheet is open while this is set.
   const [boardToRemove, setBoardToRemove] = useState<Board | null>(null);
 
@@ -77,22 +78,26 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
   const load = useCallback(async () => {
     const boardQuery = filter === ALL ? "" : `&boardId=${filter}`;
     const searchParam = query ? `&q=${encodeURIComponent(query)}` : "";
-    const [tasksRes, boardsRes] = await Promise.all([
-      fetch(`/api/tasks?status=${view}&page=${page}${boardQuery}${searchParam}`, { cache: "no-store" }),
-      fetch("/api/boards", { cache: "no-store" }),
-    ]);
-    if (tasksRes.status === 401 || boardsRes.status === 401) {
-      window.location.href = "/login";
-      return;
+    try {
+      const [tasksRes, boardsRes] = await Promise.all([
+        fetch(`/api/tasks?status=${view}&page=${page}${boardQuery}${searchParam}`, { cache: "no-store" }),
+        fetch("/api/boards", { cache: "no-store" }),
+      ]);
+      if (tasksRes.status === 401 || boardsRes.status === 401) {
+        window.location.href = "/login";
+        return;
+      }
+      const data = await tasksRes.json();
+      const boardData = await boardsRes.json();
+      setTasks(data.tasks);
+      setTotal(data.total);
+      setPageCount(data.pageCount);
+      // The server moves a page that no longer exists (for example, the last item was removed) to the last page.
+      setPage(data.page);
+      setBoards(boardData.boards);
+    } finally {
+      setSearching(false);
     }
-    const data = await tasksRes.json();
-    const boardData = await boardsRes.json();
-    setTasks(data.tasks);
-    setTotal(data.total);
-    setPageCount(data.pageCount);
-    // The server moves a page that no longer exists (for example, the last item was removed) to the last page.
-    setPage(data.page);
-    setBoards(boardData.boards);
   }, [view, filter, page, query]);
 
   useEffect(() => {
@@ -233,6 +238,7 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
 
   // A new search starts from the first page. Called by SearchBar after typing pauses.
   function search(text: string) {
+    setSearching(true);
     setQuery(text);
     setPage(1);
   }
@@ -342,7 +348,11 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
           />
         )}
 
-        <SearchBar label={view === "active" ? "Search tasks" : "Search completed tasks"} onSearch={search} />
+        <SearchBar
+          label={view === "active" ? "Search tasks" : "Search completed tasks"}
+          onSearch={search}
+          searching={searching}
+        />
 
         {tasks === null ? (
           <p className={mutedText}>Loading…</p>

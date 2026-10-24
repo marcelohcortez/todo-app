@@ -14,10 +14,12 @@ interface Props {
   label: string;
   // Called with the text to search for, or "" to show everything again.
   onSearch: (query: string) => void;
+  // True while the search request is in flight. Shows a spinner in the field.
+  searching?: boolean;
 }
 
 // A search field that searches as the user types. The × clears it and shows the full list.
-export default function SearchBar({ label, onSearch }: Props) {
+export default function SearchBar({ label, onSearch, searching = false }: Props) {
   const [text, setText] = useState("");
   const timer = useRef<ReturnType<typeof setTimeout>>();
   // The last query sent, so typing that does not change it sends nothing.
@@ -50,7 +52,7 @@ export default function SearchBar({ label, onSearch }: Props) {
     <div className="mt-4">
       <div className="relative">
         <input
-          className={cn(field, "pr-10")}
+          className={cn(field, "pr-20")}
           type="text"
           value={text}
           onChange={(e) => change(e.target.value)}
@@ -59,6 +61,13 @@ export default function SearchBar({ label, onSearch }: Props) {
           autoComplete="off"
           enterKeyHint="search"
         />
+        {searching && (
+          <span
+            role="status"
+            aria-label="Searching"
+            className="pointer-events-none absolute right-11 top-1/2 size-4 -translate-y-1/2 animate-spin rounded-full border-2 border-gray-600 border-t-primary-400"
+          />
+        )}
         {text && (
           <button
             className={cn(iconButton, "absolute right-1 top-1/2 -translate-y-1/2")}

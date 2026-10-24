@@ -103,8 +103,9 @@ export default function NotesApp() {
   // The page of 20 notes on screen, and how many pages there are.
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(1);
-  // The text the notes are searched for. "" shows everything.
+  // The text the notes are searched for. "" shows everything. `searching` is true while that search loads.
   const [query, setQuery] = useState("");
+  const [searching, setSearching] = useState(false);
   const [error, setError] = useState("");
   const toast = useToast();
 
@@ -119,20 +120,25 @@ export default function NotesApp() {
 
   const load = useCallback(async () => {
     const searchParam = query ? `&q=${encodeURIComponent(query)}` : "";
-    const res = await fetch(`/api/notes?page=${page}${searchParam}`, { cache: "no-store" });
-    if (res.status === 401) {
-      window.location.href = "/login";
-      return;
+    try {
+      const res = await fetch(`/api/notes?page=${page}${searchParam}`, { cache: "no-store" });
+      if (res.status === 401) {
+        window.location.href = "/login";
+        return;
+      }
+      const data = await res.json();
+      setNotes(data.notes);
+      setPageCount(data.pageCount);
+      // The server moves a page that no longer exists to the last page.
+      setPage(data.page);
+    } finally {
+      setSearching(false);
     }
-    const data = await res.json();
-    setNotes(data.notes);
-    setPageCount(data.pageCount);
-    // The server moves a page that no longer exists to the last page.
-    setPage(data.page);
   }, [page, query]);
 
   // A new search starts from the first page. Called by SearchBar after typing pauses.
   function search(text: string) {
+    setSearching(true);
     setQuery(text);
     setPage(1);
   }
@@ -252,7 +258,7 @@ export default function NotesApp() {
 
         {error && <p className={cn("mt-3", errorText)}>{error}</p>}
 
-        <SearchBar label="Search notes" onSearch={search} />
+        <SearchBar label="Search notes" onSearch={search} searching={searching} />
 
         {notes === null ? (
           <p className={cn("mt-5", mutedText)}>Loading…</p>
