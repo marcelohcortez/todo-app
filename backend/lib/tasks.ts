@@ -1,7 +1,8 @@
 import { ObjectId } from "mongodb";
-import type { Collection, Filter } from "mongodb";
+import type { Collection, Document, Filter } from "mongodb";
 import { createBoard } from "./boards";
 import { getDb } from "./mongodb";
+import { PAGE_SIZE, pageOf } from "./pagination";
 import { notifyChanged } from "./realtime";
 import { PRIORITIES, PRIORITY_RANK } from "./types";
 import type { Priority, Task, TaskDoc } from "./types";
@@ -78,6 +79,55 @@ export async function purgeExpiredDoneTasks(userId?: string): Promise<number> {
   return res.deletedCount;
 }
 
+// The tasks a list shows. `boardId` limits it to one board: null for tasks with no board, undefined for all.
+function taskFilter(userId: string, status: StatusFilter, boardId?: string | null): Filter<TaskDoc> {
+  const filter: Filter<TaskDoc> = { userId: new ObjectId(userId) };
+  if (status === "active") filter.completed = false;
+  if (status === "done") Object.assign(filter, doneSince(doneCutoff()));
+  if (boardId === null) filter.boardId = null;
+  else if (boardId !== undefined) filter.boardId = new ObjectId(boardId);
+  return filter;
+}
+
+export interface TaskPage {
+  tasks: Task[];
+  total: number;
+  page: number;
+  pageCount: number;
+}
+
+/**
+ * One page of the list, PAGE_SIZE tasks each. Sorted like listTasks. The id is a tie-breaker, so pages never overlap.
+ */
+export async function listTaskPage(
+  userId: string,
+  status: StatusFilter,
+  boardId: string | null | undefined,
+  requestedPage: number
+): Promise<TaskPage> {
+  await purgeExpiredDoneTasks(userId);
+
+  const filter = taskFilter(userId, status, boardId);
+  const col = await tasksCollection();
+  const total = await col.countDocuments(filter);
+  const { page, pageCount, skip } = pageOf(total, requestedPage);
+
+  const pipeline: Document[] = [{ $match: filter }];
+  if (status === "done") {
+    pipeline.push({ $sort: { completedAt: -1, _id: -1 } });
+  } else {
+    // Same order as listTasks: high, medium, normal, then newest first.
+    pipeline.push(
+      { $addFields: { rank: { $indexOfArray: [PRIORITIES, "$priority"] } } },
+      { $sort: { rank: 1, createdAt: -1, _id: -1 } }
+    );
+  }
+  pipeline.push({ $skip: skip }, { $limit: PAGE_SIZE });
+
+  const docs = await col.aggregate<TaskDoc>(pipeline).toArray();
+  return { tasks: docs.map(toTask), total, page, pageCount };
+}
+
 /**
  * `boardId` limits the list to one board. Pass null for tasks with no board, or leave it undefined for all tasks.
  */
@@ -88,12 +138,7 @@ export async function listTasks(
 ): Promise<Task[]> {
   await purgeExpiredDoneTasks(userId);
 
-  const filter: Filter<TaskDoc> = { userId: new ObjectId(userId) };
-  if (status === "active") filter.completed = false;
-  if (status === "done") Object.assign(filter, doneSince(doneCutoff()));
-  if (boardId === null) filter.boardId = null;
-  else if (boardId !== undefined) filter.boardId = new ObjectId(boardId);
-
+  const filter = taskFilter(userId, status, boardId);
   const docs = await (await tasksCollection()).find(filter).toArray();
 
   if (status === "done") {

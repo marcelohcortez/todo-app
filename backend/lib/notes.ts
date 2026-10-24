@@ -1,6 +1,7 @@
 import { ObjectId } from "mongodb";
 import type { Collection, Filter } from "mongodb";
 import { getDb } from "./mongodb";
+import { PAGE_SIZE, pageOf } from "./pagination";
 import { notifyChanged } from "./realtime";
 import type { Note, NoteDeletionDoc, NoteDoc } from "./types";
 
@@ -32,12 +33,26 @@ async function deletionsCollection(): Promise<Collection<NoteDeletionDoc>> {
   return (await getDb()).collection<NoteDeletionDoc>("note_deletions");
 }
 
-export async function listNotes(userId: string): Promise<Note[]> {
-  const docs = await (await notesCollection())
-    .find({ userId: new ObjectId(userId) })
-    .sort({ createdAt: -1 })
+export interface NotePage {
+  notes: Note[];
+  total: number;
+  page: number;
+  pageCount: number;
+}
+
+/** One page of notes, newest first, PAGE_SIZE each. The id is a tie-breaker, so pages never overlap. */
+export async function listNotes(userId: string, requestedPage: number): Promise<NotePage> {
+  const filter = { userId: new ObjectId(userId) };
+  const col = await notesCollection();
+  const total = await col.countDocuments(filter);
+  const { page, pageCount, skip } = pageOf(total, requestedPage);
+  const docs = await col
+    .find(filter)
+    .sort({ createdAt: -1, _id: -1 })
+    .skip(skip)
+    .limit(PAGE_SIZE)
     .toArray();
-  return docs.map(toNote);
+  return { notes: docs.map(toNote), total, page, pageCount };
 }
 
 export async function getNote(userId: string, id: string): Promise<Note | null> {

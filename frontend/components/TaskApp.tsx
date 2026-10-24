@@ -7,6 +7,7 @@ import DeleteBoardSheet from "./DeleteBoardSheet";
 import type { BoardRemoval } from "./DeleteBoardSheet";
 import MicButton from "./MicButton";
 import NewBoardForm from "./NewBoardForm";
+import Pagination from "./Pagination";
 import Nav from "./Nav";
 import { useLiveRefresh } from "./useLiveRefresh";
 import { useToast } from "./Toast";
@@ -40,8 +41,12 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
   const [error, setError] = useState("");
   const toast = useToast();
 
-  // Board filter: ALL, or a board id.
+  // Board filter: ALL, or a board id. The server filters, so the page count and the items match.
   const [filter, setFilter] = useState(ALL);
+  // Which page of 20 tasks is shown, how many pages there are, and how many tasks match in all.
+  const [page, setPage] = useState(1);
+  const [pageCount, setPageCount] = useState(1);
+  const [total, setTotal] = useState(0);
   // The board the user asked to remove. Its confirmation sheet is open while this is set.
   const [boardToRemove, setBoardToRemove] = useState<Board | null>(null);
 
@@ -67,8 +72,9 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
   const editSpokenPrefix = useRef("");
 
   const load = useCallback(async () => {
+    const boardQuery = filter === ALL ? "" : `&boardId=${filter}`;
     const [tasksRes, boardsRes] = await Promise.all([
-      fetch(`/api/tasks?status=${view}`, { cache: "no-store" }),
+      fetch(`/api/tasks?status=${view}&page=${page}${boardQuery}`, { cache: "no-store" }),
       fetch("/api/boards", { cache: "no-store" }),
     ]);
     if (tasksRes.status === 401 || boardsRes.status === 401) {
@@ -78,8 +84,12 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
     const data = await tasksRes.json();
     const boardData = await boardsRes.json();
     setTasks(data.tasks);
+    setTotal(data.total);
+    setPageCount(data.pageCount);
+    // The server moves a page that no longer exists (for example, the last item was removed) to the last page.
+    setPage(data.page);
     setBoards(boardData.boards);
-  }, [view]);
+  }, [view, filter, page]);
 
   useEffect(() => {
     load();
@@ -217,9 +227,6 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
     return null;
   }
 
-  // The list the pills choose from. The filter is applied here, on the tasks already loaded.
-  const visible = (tasks ?? []).filter((t) => filter === ALL || t.boardId === filter);
-
   const boardName = (id: string | null) => boards.find((b) => b.id === id)?.name;
 
   const emptyText =
@@ -316,7 +323,10 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
           <BoardPills
             boards={boards}
             value={filter}
-            onChange={setFilter}
+            onChange={(board) => {
+              setFilter(board);
+              setPage(1);
+            }}
             onRemove={setBoardToRemove}
             onRename={renameBoardNow}
           />
@@ -324,13 +334,11 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
 
         {tasks === null ? (
           <p className={mutedText}>Loading…</p>
-        ) : tasks.length === 0 ? (
-          <p className={mutedText}>{emptyText}</p>
-        ) : visible.length === 0 ? (
-          <p className={mutedText}>No tasks on this board.</p>
+        ) : total === 0 ? (
+          <p className={mutedText}>{filter === ALL ? emptyText : "No tasks on this board."}</p>
         ) : (
           <ul className="mt-4 flex flex-col gap-2.5">
-            {visible.map((task) =>
+            {tasks.map((task) =>
               editingId === task.id ? (
                 <li key={task.id} className="item rounded-xl border border-primary-500/40 bg-gray-900 p-4 shadow-lg shadow-black/20">
                   <div className="grid gap-2 sm:grid-cols-3">
@@ -446,6 +454,8 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
             )}
           </ul>
         )}
+
+        {tasks !== null && total > 0 && <Pagination page={page} pageCount={pageCount} onPage={setPage} />}
       </main>
     </>
   );

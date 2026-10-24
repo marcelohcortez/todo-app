@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import Nav from "./Nav";
 import NoteField from "./NoteField";
+import Pagination from "./Pagination";
 import { useLiveRefresh } from "./useLiveRefresh";
 import { useToast } from "./Toast";
 import Button from "./ui/Button";
@@ -98,6 +99,9 @@ function NoteItem({ note, onEdit, onDelete }: NoteItemProps) {
 
 export default function NotesApp() {
   const [notes, setNotes] = useState<Note[] | null>(null);
+  // The page of 20 notes on screen, and how many pages there are.
+  const [page, setPage] = useState(1);
+  const [pageCount, setPageCount] = useState(1);
   const [error, setError] = useState("");
   const toast = useToast();
 
@@ -111,14 +115,17 @@ export default function NotesApp() {
   const [editBody, setEditBody] = useState("");
 
   const load = useCallback(async () => {
-    const res = await fetch("/api/notes", { cache: "no-store" });
+    const res = await fetch(`/api/notes?page=${page}`, { cache: "no-store" });
     if (res.status === 401) {
       window.location.href = "/login";
       return;
     }
     const data = await res.json();
     setNotes(data.notes);
-  }, []);
+    setPageCount(data.pageCount);
+    // The server moves a page that no longer exists to the last page.
+    setPage(data.page);
+  }, [page]);
 
   useEffect(() => {
     load();
@@ -265,6 +272,8 @@ export default function NotesApp() {
             )}
           </ul>
         )}
+
+        {notes !== null && notes.length > 0 && <Pagination page={page} pageCount={pageCount} onPage={setPage} />}
       </main>
     </>
   );

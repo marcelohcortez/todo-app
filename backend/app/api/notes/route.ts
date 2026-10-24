@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserId, unauthorized } from "@/lib/auth";
+import { parsePage } from "@/lib/pagination";
 import { cleanBody, createNote, listNotes } from "@/lib/notes";
 
-// GET /api/notes
-export async function GET(_req: NextRequest) {
+// GET /api/notes?page=1  → one page of 20 notes, with the total and the number of pages
+export async function GET(req: NextRequest) {
   const userId = await getCurrentUserId();
   if (!userId) return unauthorized();
-  return NextResponse.json({ notes: await listNotes(userId) });
+  return NextResponse.json(await listNotes(userId, parsePage(req.nextUrl.searchParams.get("page"))));
 }
 
 // POST /api/notes  { body }
