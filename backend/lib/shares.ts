@@ -145,7 +145,11 @@ export async function withOwnerFallback<T>(
   return { ownerId: access.ownerId, value: viaShare };
 }
 
-/** Whether `requestingUserId` may read/edit this task: they own it, or it (or its board) is shared with them. */
+// Access is a single level: there is no view-only vs. edit vs. owner distinction. Sharing a task or
+// note is intentionally full collaborator access, including deleting it — the same as sharing a
+// board already implies for every task on it. A friend who shouldn't have that can be unshared
+// (see unshareItem) or removed as a friend (see removeFriendship), which also removes the share.
+/** Whether `requestingUserId` may read/edit/delete this task: they own it, or it (or its board) is shared with them. */
 export async function resolveTaskAccess(requestingUserId: string, taskId: string): Promise<Access | null> {
   if (!ObjectId.isValid(taskId)) return null;
   const doc = await (await getDb())
@@ -167,7 +171,8 @@ export async function resolveTaskAccess(requestingUserId: string, taskId: string
   return null;
 }
 
-/** Whether `requestingUserId` may read/edit this note: they own it, or it is shared with them directly. */
+// Same single-level access as resolveTaskAccess above: sharing a note includes letting the friend delete it.
+/** Whether `requestingUserId` may read/edit/delete this note: they own it, or it is shared with them directly. */
 export async function resolveNoteAccess(requestingUserId: string, noteId: string): Promise<Access | null> {
   if (!ObjectId.isValid(noteId)) return null;
   const doc = await (await getDb())
