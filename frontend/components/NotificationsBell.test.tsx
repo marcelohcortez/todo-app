@@ -7,7 +7,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function stubApi(notifications: unknown[], unreadCount: number) {
+function stubApi(notifications: unknown[], unreadCount: number, options?: { readFails?: boolean }) {
   const calls: { url: string; method: string }[] = [];
   vi.stubGlobal(
     "fetch",
@@ -17,7 +17,11 @@ function stubApi(notifications: unknown[], unreadCount: number) {
       if (url === "/api/notifications" && method === "GET") {
         return new Response(JSON.stringify({ notifications, unreadCount }), { status: 200 });
       }
-      if (url === "/api/notifications/read") return new Response(JSON.stringify({ ok: true }), { status: 200 });
+      if (url === "/api/notifications/read") {
+        return options?.readFails
+          ? new Response(JSON.stringify({ error: "Internal error" }), { status: 500 })
+          : new Response(JSON.stringify({ ok: true }), { status: 200 });
+      }
       if (url === "/api/realtime/config") return new Response(JSON.stringify({ channel: "x", pusher: null }), { status: 200 });
       return new Response("{}", { status: 404 });
     })
@@ -53,5 +57,20 @@ describe("NotificationsBell", () => {
     render(<NotificationsBell />);
     await waitFor(() => expect(screen.getByRole("button", { name: "Notifications" })).toBeTruthy());
     expect(screen.queryByText("0")).toBeNull();
+  });
+
+  it("keeps the unread badge when marking notifications read fails", async () => {
+    const calls = stubApi(
+      [{ id: "n1", type: "share", data: { fromEmail: "bob@example.com", kind: "board" }, createdAt: "2026-01-01T00:00:00.000Z", read: false }],
+      1,
+      { readFails: true }
+    );
+    render(<NotificationsBell />);
+    await screen.findByText("1");
+
+    fireEvent.click(screen.getByRole("button", { name: /Notifications/ }));
+    await waitFor(() => expect(calls.some((c) => c.url === "/api/notifications/read")).toBe(true));
+
+    expect(await screen.findByText("1")).toBeTruthy();
   });
 });

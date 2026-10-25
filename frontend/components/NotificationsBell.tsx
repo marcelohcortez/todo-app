@@ -53,8 +53,8 @@ export default function NotificationsBell() {
     const next = !open;
     setOpen(next);
     if (next && unread > 0) {
-      setUnread(0);
-      await fetch("/api/notifications/read", { method: "POST" });
+      const res = await fetch("/api/notifications/read", { method: "POST" });
+      if (res.ok) setUnread(0);
     }
   }
 
