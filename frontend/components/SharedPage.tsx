@@ -9,6 +9,7 @@ import Button from "./ui/Button";
 import { cn } from "./ui/cn";
 import { PencilIcon, TrashIcon } from "./ui/icons";
 import { badgeClass, card, errorText, field, headingText, iconButton, iconButtonDanger, mutedText, pageMain } from "./ui/styles";
+import { api } from "@/lib/api";
 import type { SharedBoard, SharedByMeEntry, SharedNote, SharedTask, Task } from "@/lib/types";
 
 interface TaskPage {
@@ -22,13 +23,6 @@ const LABEL: Record<Task["priority"], string> = { high: "High", medium: "Medium"
 
 function fmt(iso: string): string {
   return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
-}
-
-async function api(url: string, init: RequestInit = {}): Promise<unknown> {
-  const res = await fetch(url, { ...init, headers: { "Content-Type": "application/json" } });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error ?? "Request failed");
-  return data;
 }
 
 // One task's row, shared between an individually-shared task and a task inside a shared board.

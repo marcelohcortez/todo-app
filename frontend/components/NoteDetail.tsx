@@ -10,20 +10,11 @@ import { useToast } from "./Toast";
 import Button from "./ui/Button";
 import { cn } from "./ui/cn";
 import { card, errorText, mutedText, pageMain } from "./ui/styles";
+import { api } from "@/lib/api";
 import type { Note } from "@/lib/types";
 
 function fmt(iso: string): string {
   return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
-}
-
-async function api(url: string, init: RequestInit = {}): Promise<unknown> {
-  const res = await fetch(url, {
-    ...init,
-    headers: { "Content-Type": "application/json" },
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error ?? "Request failed");
-  return data;
 }
 
 export default function NoteDetail({ id }: { id: string }) {

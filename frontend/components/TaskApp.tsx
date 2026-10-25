@@ -19,6 +19,7 @@ import { cn } from "./ui/cn";
 import Spinner from "./ui/Spinner";
 import { PencilIcon, ShareIcon, TrashIcon } from "./ui/icons";
 import { badgeClass, errorText, field, iconButton, iconButtonDanger, mutedText, pageMain } from "./ui/styles";
+import { api } from "@/lib/api";
 import { PRIORITIES } from "@/lib/types";
 import type { Board, Priority, Task } from "@/lib/types";
 
@@ -26,16 +27,6 @@ const LABEL: Record<Priority, string> = { high: "High", medium: "Medium", normal
 
 function fmt(iso: string): string {
   return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
-}
-
-async function api(url: string, init: RequestInit = {}): Promise<unknown> {
-  const res = await fetch(url, {
-    ...init,
-    headers: { "Content-Type": "application/json" },
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error ?? "Request failed");
-  return data;
 }
 
 export default function TaskApp({ view }: { view: "active" | "done" }) {

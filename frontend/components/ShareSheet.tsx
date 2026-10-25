@@ -6,6 +6,7 @@ import Button from "./ui/Button";
 import Sheet from "./ui/Sheet";
 import { cn } from "./ui/cn";
 import { errorText, mutedText } from "./ui/styles";
+import { api } from "@/lib/api";
 import type { Friend, ShareKind } from "@/lib/types";
 
 interface ItemShare {
@@ -20,13 +21,6 @@ interface Props {
   // Shown in the sheet's title, for example a task's title or a board's name.
   itemLabel: string;
   onClose: () => void;
-}
-
-async function api(url: string, init: RequestInit = {}): Promise<unknown> {
-  const res = await fetch(url, { ...init, headers: { "Content-Type": "application/json" } });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error ?? "Request failed");
-  return data;
 }
 
 // Lets the caller choose which friends a board, task, or note is shared with. Friends already

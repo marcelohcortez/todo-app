@@ -6,16 +6,11 @@ import { useLiveRefresh } from "./useLiveRefresh";
 import Button from "./ui/Button";
 import { cn } from "./ui/cn";
 import { card, errorText, field, headingText, mutedText, pageMain } from "./ui/styles";
+import { apiRaw } from "@/lib/api";
 import type { Friend, FriendState } from "@/lib/types";
 
 function fmt(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { dateStyle: "medium" });
-}
-
-async function api(url: string, init: RequestInit = {}): Promise<{ status: number; data: Record<string, unknown> }> {
-  const res = await fetch(url, { ...init, headers: { "Content-Type": "application/json" } });
-  const data = await res.json().catch(() => ({}));
-  return { status: res.status, data };
 }
 
 export default function FriendsPage() {
@@ -45,7 +40,7 @@ export default function FriendsPage() {
     setBusy(true);
     setError("");
     setNotice("");
-    const { status, data } = await api("/api/friends/requests", { method: "POST", body: JSON.stringify({ email }) });
+    const { status, data } = await apiRaw("/api/friends/requests", { method: "POST", body: JSON.stringify({ email }) });
     setBusy(false);
     if (status !== 200) {
       setError(typeof data.error === "string" ? data.error : "Could not send the request");
@@ -59,18 +54,18 @@ export default function FriendsPage() {
   }
 
   async function accept(friend: Friend) {
-    await api(`/api/friends/${friend.friendshipId}`, { method: "PATCH", body: JSON.stringify({ action: "accept" }) });
+    await apiRaw(`/api/friends/${friend.friendshipId}`, { method: "PATCH", body: JSON.stringify({ action: "accept" }) });
     load();
   }
 
   async function decline(friend: Friend) {
-    await api(`/api/friends/${friend.friendshipId}`, { method: "DELETE" });
+    await apiRaw(`/api/friends/${friend.friendshipId}`, { method: "DELETE" });
     load();
   }
 
   async function removeFriend(friend: Friend) {
     if (!window.confirm(`Remove ${friend.email} as a friend? Anything shared between you will stop being shared.`)) return;
-    await api(`/api/friends/${friend.friendshipId}`, { method: "DELETE" });
+    await apiRaw(`/api/friends/${friend.friendshipId}`, { method: "DELETE" });
     load();
   }
 
