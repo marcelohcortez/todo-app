@@ -12,6 +12,7 @@ import {
   resolveNoteAccess,
   resolveTaskAccess,
   shareItem,
+  sharedBoardsWithMe,
   unshareItem,
 } from "./shares";
 
@@ -124,6 +125,35 @@ describe("unshareItem", () => {
     await shareItem(OWNER, FRIEND, "board", board._id.toHexString());
     const [share] = await fakeDb.collection("shares").find({}).toArray();
     expect(await unshareItem(STRANGER, (share as { _id: ObjectId })._id.toHexString())).toBe(false);
+  });
+});
+
+describe("sharedBoardsWithMe", () => {
+  it("paginates at the DB level, newest share first", async () => {
+    const boards = Array.from({ length: 25 }, (_, i) => ({
+      _id: new ObjectId(),
+      userId: new ObjectId(OWNER),
+      name: `Board ${i}`,
+      createdAt: new Date(2026, 0, i + 1),
+    }));
+    fakeDb.seed("boards", boards);
+    for (const board of boards) {
+      await shareItem(OWNER, FRIEND, "board", board._id.toHexString());
+    }
+
+    const page1 = await sharedBoardsWithMe(FRIEND, 1);
+    expect(page1.total).toBe(25);
+    expect(page1.pageCount).toBe(2);
+    expect(page1.boards).toHaveLength(20);
+
+    const page2 = await sharedBoardsWithMe(FRIEND, 2);
+    expect(page2.boards).toHaveLength(5);
+
+    // Together, the two pages cover every shared board exactly once: no item skipped or repeated
+    // across the skip/limit boundary.
+    const namesSeen = [...page1.boards, ...page2.boards].map((b) => b.name);
+    expect(new Set(namesSeen).size).toBe(25);
+    expect(namesSeen.sort()).toEqual(boards.map((b) => b.name).sort());
   });
 });
 

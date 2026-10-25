@@ -270,13 +270,11 @@ export interface SharedBoardsPage {
 
 /** Boards shared with `userId` by a friend, newest share first. */
 export async function sharedBoardsWithMe(userId: string, requestedPage: number): Promise<SharedBoardsPage> {
-  const shares = await (await sharesCollection())
-    .find({ friendId: new ObjectId(userId), kind: "board" })
-    .sort({ createdAt: -1 })
-    .toArray();
-  const total = shares.length;
+  const col = await sharesCollection();
+  const filter = { friendId: new ObjectId(userId), kind: "board" as const };
+  const total = await col.countDocuments(filter);
   const { page, pageCount, skip } = pageOf(total, requestedPage);
-  const pageShares = shares.slice(skip, skip + PAGE_SIZE);
+  const pageShares = await col.find(filter).sort({ createdAt: -1 }).skip(skip).limit(PAGE_SIZE).toArray();
 
   const [boardDocs, emailByOwner] = await Promise.all([
     pageShares.length
@@ -310,6 +308,11 @@ export interface SharedTasksPage {
 /**
  * Tasks shared with `userId` one at a time (not via a shared board). A task whose board is also shared
  * with `userId` is left out here, since it already shows up under that board.
+ *
+ * Paginated in memory rather than at the DB level: which shares are "visible" depends on excluding
+ * ones whose task sits on a board also shared with `userId`, which needs the full set of task and
+ * board shares in hand before a page can be sliced off. Fine at this app's scale (friend/share counts
+ * are small); revisit with a $lookup-based aggregation if that stops being true.
  */
 export async function sharedTasksWithMe(userId: string, requestedPage: number): Promise<SharedTasksPage> {
   const friendId = new ObjectId(userId);
@@ -354,13 +357,11 @@ export interface SharedNotesPage {
 
 /** Notes shared with `userId` one at a time, newest share first. */
 export async function sharedNotesWithMe(userId: string, requestedPage: number): Promise<SharedNotesPage> {
-  const shares = await (await sharesCollection())
-    .find({ friendId: new ObjectId(userId), kind: "note" })
-    .sort({ createdAt: -1 })
-    .toArray();
-  const total = shares.length;
+  const col = await sharesCollection();
+  const filter = { friendId: new ObjectId(userId), kind: "note" as const };
+  const total = await col.countDocuments(filter);
   const { page, pageCount, skip } = pageOf(total, requestedPage);
-  const pageShares = shares.slice(skip, skip + PAGE_SIZE);
+  const pageShares = await col.find(filter).sort({ createdAt: -1 }).skip(skip).limit(PAGE_SIZE).toArray();
 
   const [noteDocs, emailByOwner] = await Promise.all([
     pageShares.length
@@ -414,13 +415,11 @@ export interface SharedByMePage {
 
 /** Everything `userId` has shared out, each with who it was shared with, newest first. */
 export async function sharedByMe(userId: string, requestedPage: number): Promise<SharedByMePage> {
-  const shares = await (await sharesCollection())
-    .find({ ownerId: new ObjectId(userId) })
-    .sort({ createdAt: -1 })
-    .toArray();
-  const total = shares.length;
+  const col = await sharesCollection();
+  const filter = { ownerId: new ObjectId(userId) };
+  const total = await col.countDocuments(filter);
   const { page, pageCount, skip } = pageOf(total, requestedPage);
-  const pageShares = shares.slice(skip, skip + PAGE_SIZE);
+  const pageShares = await col.find(filter).sort({ createdAt: -1 }).skip(skip).limit(PAGE_SIZE).toArray();
 
   const byKind: Record<ShareDoc["kind"], ObjectId[]> = { board: [], task: [], note: [] };
   pageShares.forEach((s) => byKind[s.kind].push(s.itemId));
