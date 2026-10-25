@@ -3,7 +3,7 @@ import type { Collection } from "mongodb";
 import { getDb } from "./mongodb";
 import { notifyChanged } from "./realtime";
 import { escapeRegex } from "./search";
-import { deleteSharesForItem, deleteSharesForItems } from "./shares";
+import { deleteSharesForItem, deleteSharesForItems, notifyAccessForTasks } from "./shares";
 import type { Board, BoardDoc, TaskDoc } from "./types";
 
 const MAX_NAME = 40;
@@ -141,9 +141,15 @@ export async function removeBoard(userId: string, id: string, removal: BoardRemo
 
   const tasks = (await getDb()).collection<TaskDoc>("tasks");
   if (removal.action === "move") {
+    const toMove = await tasks.find({ userId: uid, boardId }, { projection: { _id: 1 } }).toArray();
     await tasks.updateMany(
       { userId: uid, boardId },
       { $set: { boardId: new ObjectId(removal.targetId), updatedAt: new Date() } }
+    );
+    // A friend with a direct share on one of these tasks (not just the old board) needs a ping too.
+    await notifyAccessForTasks(
+      userId,
+      toMove.map((t) => t._id.toHexString())
     );
   } else {
     const toDelete = await tasks.find({ userId: uid, boardId }, { projection: { _id: 1 } }).toArray();

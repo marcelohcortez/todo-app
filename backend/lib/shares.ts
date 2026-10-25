@@ -236,6 +236,22 @@ export async function notifyAccess(
   await Promise.all([...ids].map((id) => notifyChanged(id)));
 }
 
+/**
+ * Like notifyAccess, but for several tasks at once that moved to a new board together (so none of
+ * them have their own boardId to check anymore). Pings the owner plus anyone with a direct share
+ * on any of these tasks; a board-level share is handled separately by whoever deletes that board.
+ */
+export async function notifyAccessForTasks(ownerId: string, taskIds: string[]): Promise<void> {
+  const ids = new Set<string>([ownerId]);
+  if (taskIds.length > 0) {
+    const shares = await (await sharesCollection())
+      .find({ ownerId: new ObjectId(ownerId), kind: "task", itemId: { $in: taskIds.map((id) => new ObjectId(id)) } })
+      .toArray();
+    shares.forEach((s) => ids.add(s.friendId.toHexString()));
+  }
+  await Promise.all([...ids].map((id) => notifyChanged(id)));
+}
+
 async function emailsByUserId(userIds: ObjectId[]): Promise<Map<string, string>> {
   if (userIds.length === 0) return new Map();
   const users = await (await getDb())
