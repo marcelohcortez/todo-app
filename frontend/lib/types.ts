@@ -33,3 +33,50 @@ export interface Task {
   completedAt: string | null;
   updatedAt: string;
 }
+
+// One friend, or one pending request, from GET /api/friends.
+export interface Friend {
+  friendshipId: string;
+  userId: string;
+  email: string;
+  createdAt: string;
+}
+
+export interface FriendState {
+  friends: Friend[];
+  incoming: Friend[];
+  outgoing: Friend[];
+}
+
+export type ShareKind = "board" | "task" | "note";
+
+export interface AppNotification {
+  id: string;
+  type: "friend_request" | "friend_accepted" | "share";
+  data: { fromUserId?: string; fromEmail?: string; kind?: ShareKind; itemId?: string };
+  createdAt: string;
+  read: boolean;
+}
+
+// One board, task, or note shared with the caller, from GET /api/shared/with-me/*.
+export interface SharedBoard extends Board {
+  ownerEmail: string;
+}
+
+export interface SharedTask extends Task {
+  ownerEmail: string;
+}
+
+export interface SharedNote extends Note {
+  ownerEmail: string;
+}
+
+// One item the caller has shared out, from GET /api/shared/by-me.
+export interface SharedByMeEntry {
+  shareId: string;
+  kind: ShareKind;
+  itemId: string;
+  name: string;
+  friendEmail: string;
+  createdAt: string;
+}

@@ -3,6 +3,7 @@ import type { Collection } from "mongodb";
 import { getDb } from "./mongodb";
 import { notifyChanged } from "./realtime";
 import { escapeRegex } from "./search";
+import { deleteSharesForItem, deleteSharesForItems } from "./shares";
 import type { Board, BoardDoc, TaskDoc } from "./types";
 
 const MAX_NAME = 40;
@@ -145,9 +146,15 @@ export async function removeBoard(userId: string, id: string, removal: BoardRemo
       { $set: { boardId: new ObjectId(removal.targetId), updatedAt: new Date() } }
     );
   } else {
+    const toDelete = await tasks.find({ userId: uid, boardId }, { projection: { _id: 1 } }).toArray();
     await tasks.deleteMany({ userId: uid, boardId });
+    await deleteSharesForItems(
+      "task",
+      toDelete.map((t) => t._id)
+    );
   }
   await boards.deleteOne({ _id: boardId, userId: uid });
+  await deleteSharesForItem("board", id);
   await notifyChanged(userId);
   return true;
 }

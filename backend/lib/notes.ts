@@ -4,6 +4,7 @@ import { getDb } from "./mongodb";
 import { PAGE_SIZE, pageOf } from "./pagination";
 import { escapeRegex } from "./search";
 import { notifyChanged } from "./realtime";
+import { deleteSharesForItem, notifyAccess, resolveNoteAccess } from "./shares";
 import type { Note, NoteDeletionDoc, NoteDoc } from "./types";
 
 // Tombstones older than this are dropped. A vault that has not synced for this long rebuilds from scratch.
@@ -58,9 +59,16 @@ export async function listNotes(userId: string, requestedPage: number, query?: s
   return { notes: docs.map(toNote), total, page, pageCount };
 }
 
+// `userId` may be the owner or a friend the note is shared with.
 export async function getNote(userId: string, id: string): Promise<Note | null> {
   if (!ObjectId.isValid(id)) return null;
-  const doc = await (await notesCollection()).findOne({ _id: new ObjectId(id), userId: new ObjectId(userId) });
+  const col = await notesCollection();
+  let doc = await col.findOne({ _id: new ObjectId(id), userId: new ObjectId(userId) });
+  if (!doc) {
+    const access = await resolveNoteAccess(userId, id);
+    if (!access) return null;
+    doc = await col.findOne({ _id: new ObjectId(id), userId: new ObjectId(access.ownerId) });
+  }
   return doc ? toNote(doc) : null;
 }
 
@@ -74,23 +82,53 @@ export async function createNote(userId: string, body: string): Promise<Note> {
 
 export async function updateNote(userId: string, id: string, body: string): Promise<Note | null> {
   if (!ObjectId.isValid(id)) return null;
-  const doc = await (await notesCollection()).findOneAndUpdate(
+  const col = await notesCollection();
+  const now = new Date();
+
+  let ownerId = userId;
+  let doc = await col.findOneAndUpdate(
     { _id: new ObjectId(id), userId: new ObjectId(userId) },
-    { $set: { body, updatedAt: new Date() } },
+    { $set: { body, updatedAt: now } },
     { returnDocument: "after" }
   );
-  if (!doc) return null;
-  await notifyChanged(userId);
+  if (!doc) {
+    const access = await resolveNoteAccess(userId, id);
+    if (!access) return null;
+    ownerId = access.ownerId;
+    doc = await col.findOneAndUpdate(
+      { _id: new ObjectId(id), userId: new ObjectId(ownerId) },
+      { $set: { body, updatedAt: now } },
+      { returnDocument: "after" }
+    );
+    if (!doc) return null;
+  }
+
+  await notifyAccess(ownerId, { noteId: id });
   return toNote(doc);
 }
 
 export async function deleteNote(userId: string, id: string): Promise<boolean> {
   if (!ObjectId.isValid(id)) return false;
-  const uid = new ObjectId(userId);
-  const res = await (await notesCollection()).deleteOne({ _id: new ObjectId(id), userId: uid });
-  if (res.deletedCount !== 1) return false;
-  await (await deletionsCollection()).insertOne({ _id: new ObjectId(), userId: uid, noteId: id, deletedAt: new Date() });
-  await notifyChanged(userId);
+  const col = await notesCollection();
+
+  let ownerId = userId;
+  let doc = await col.findOneAndDelete({ _id: new ObjectId(id), userId: new ObjectId(userId) });
+  if (!doc) {
+    const access = await resolveNoteAccess(userId, id);
+    if (!access) return false;
+    ownerId = access.ownerId;
+    doc = await col.findOneAndDelete({ _id: new ObjectId(id), userId: new ObjectId(ownerId) });
+    if (!doc) return false;
+  }
+
+  await (await deletionsCollection()).insertOne({
+    _id: new ObjectId(),
+    userId: new ObjectId(ownerId),
+    noteId: id,
+    deletedAt: new Date(),
+  });
+  await deleteSharesForItem("note", id);
+  await notifyAccess(ownerId, { noteId: id });
   return true;
 }
 

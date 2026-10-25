@@ -6,13 +6,14 @@ import Nav from "./Nav";
 import NoteField from "./NoteField";
 import Pagination from "./Pagination";
 import SearchBar from "./SearchBar";
+import ShareSheet from "./ShareSheet";
 import { useLiveRefresh } from "./useLiveRefresh";
 import { useToast } from "./Toast";
 import Button from "./ui/Button";
 import Sheet from "./ui/Sheet";
 import { cn } from "./ui/cn";
 import Spinner from "./ui/Spinner";
-import { PencilIcon, TrashIcon } from "./ui/icons";
+import { PencilIcon, ShareIcon, TrashIcon } from "./ui/icons";
 import { errorText, iconButton, iconButtonDanger, mutedText, pageMain } from "./ui/styles";
 import type { Note } from "@/lib/types";
 
@@ -34,10 +35,11 @@ interface NoteItemProps {
   note: Note;
   onEdit: (note: Note) => void;
   onDelete: (note: Note) => void;
+  onShare: (note: Note) => void;
 }
 
 // One note in the list. The preview is cut to three lines; "Show more" appears only when that cut hides text.
-function NoteItem({ note, onEdit, onDelete }: NoteItemProps) {
+function NoteItem({ note, onEdit, onDelete, onShare }: NoteItemProps) {
   const previewRef = useRef<HTMLSpanElement>(null);
   const [expanded, setExpanded] = useState(false);
   const [overflows, setOverflows] = useState(false);
@@ -85,6 +87,9 @@ function NoteItem({ note, onEdit, onDelete }: NoteItemProps) {
         <button className={iconButton} type="button" onClick={() => onEdit(note)} aria-label="Edit note" title="Edit">
           <PencilIcon />
         </button>
+        <button className={iconButton} type="button" onClick={() => onShare(note)} aria-label="Share note" title="Share">
+          <ShareIcon />
+        </button>
         <button
           className={cn(iconButton, iconButtonDanger)}
           type="button"
@@ -118,6 +123,8 @@ export default function NotesApp() {
   // The note being edited in place, and its text while the edit is open.
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editBody, setEditBody] = useState("");
+  // The note the user asked to share. Its share sheet is open while this is set.
+  const [sharingNote, setSharingNote] = useState<Note | null>(null);
 
   const load = useCallback(async () => {
     const searchParam = query ? `&q=${encodeURIComponent(query)}` : "";
@@ -292,7 +299,7 @@ export default function NotesApp() {
                   </div>
                 </li>
               ) : (
-                <NoteItem key={note.id} note={note} onEdit={startEdit} onDelete={remove} />
+                <NoteItem key={note.id} note={note} onEdit={startEdit} onDelete={remove} onShare={setSharingNote} />
               )
             )}
           </ul>
@@ -302,6 +309,15 @@ export default function NotesApp() {
           <Pagination page={page} pageCount={pageCount} onPage={setPage} />
         )}
       </main>
+
+      {sharingNote && (
+        <ShareSheet
+          kind="note"
+          itemId={sharingNote.id}
+          itemLabel={sharingNote.body.length > 40 ? `${sharingNote.body.slice(0, 40)}…` : sharingNote.body}
+          onClose={() => setSharingNote(null)}
+        />
+      )}
     </>
   );
 }

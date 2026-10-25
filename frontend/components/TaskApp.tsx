@@ -10,13 +10,14 @@ import NewBoardForm from "./NewBoardForm";
 import Pagination from "./Pagination";
 import SearchBar from "./SearchBar";
 import Nav from "./Nav";
+import ShareSheet from "./ShareSheet";
 import { useLiveRefresh } from "./useLiveRefresh";
 import { useToast } from "./Toast";
 import Button from "./ui/Button";
 import Sheet from "./ui/Sheet";
 import { cn } from "./ui/cn";
 import Spinner from "./ui/Spinner";
-import { PencilIcon, TrashIcon } from "./ui/icons";
+import { PencilIcon, ShareIcon, TrashIcon } from "./ui/icons";
 import { badgeClass, errorText, field, iconButton, iconButtonDanger, mutedText, pageMain } from "./ui/styles";
 import { PRIORITIES } from "@/lib/types";
 import type { Board, Priority, Task } from "@/lib/types";
@@ -54,6 +55,8 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
   const [searching, setSearching] = useState(false);
   // The board the user asked to remove. Its confirmation sheet is open while this is set.
   const [boardToRemove, setBoardToRemove] = useState<Board | null>(null);
+  // The board or task the user asked to share. Its share sheet is open while this is set.
+  const [sharing, setSharing] = useState<{ kind: "board" | "task"; id: string; label: string } | null>(null);
 
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState<Priority>("normal");
@@ -289,6 +292,10 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
         />
       )}
 
+      {sharing && (
+        <ShareSheet kind={sharing.kind} itemId={sharing.id} itemLabel={sharing.label} onClose={() => setSharing(null)} />
+      )}
+
       <main className={pageMain}>
         {view === "active" && (
           <NewBoardForm
@@ -346,6 +353,7 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
             }}
             onRemove={setBoardToRemove}
             onRename={renameBoardNow}
+            onShare={(board) => setSharing({ kind: "board", id: board.id, label: board.name })}
           />
         )}
 
@@ -463,6 +471,15 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
                       title="Edit"
                     >
                       <PencilIcon />
+                    </button>
+                    <button
+                      className={iconButton}
+                      type="button"
+                      onClick={() => setSharing({ kind: "task", id: task.id, label: task.title })}
+                      aria-label={`Share "${task.title}"`}
+                      title="Share"
+                    >
+                      <ShareIcon />
                     </button>
                     <button
                       className={cn(iconButton, iconButtonDanger)}

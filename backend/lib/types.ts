@@ -87,3 +87,45 @@ export interface NoteDeletionDoc {
   noteId: string;
   deletedAt: Date;
 }
+
+// A friend request, pending or accepted. There is at most one of these between any two users
+// (found by checking both directions before inserting; see lib/friends.ts).
+export interface FriendshipDoc {
+  _id: ObjectId;
+  requesterId: ObjectId;
+  recipientId: ObjectId;
+  status: "pending" | "accepted";
+  createdAt: Date;
+  respondedAt: Date | null;
+}
+
+export type NotificationType = "friend_request" | "friend_accepted" | "share";
+
+export interface NotificationData {
+  fromUserId?: string;
+  fromEmail?: string;
+  kind?: "board" | "task" | "note";
+  itemId?: string;
+}
+
+// Powers the notifications bell. Never created on its own: always written alongside the
+// notifyChanged() call for whatever triggered it, so the bell piggybacks on the existing realtime ping.
+export interface NotificationDoc {
+  _id: ObjectId;
+  userId: ObjectId;
+  type: NotificationType;
+  data: NotificationData;
+  createdAt: Date;
+  readAt: Date | null;
+}
+
+// One board, task, or note shared from its owner to a friend. A board share covers all of that
+// board's tasks, present and future; a task or note share covers just that one item.
+export interface ShareDoc {
+  _id: ObjectId;
+  ownerId: ObjectId;
+  friendId: ObjectId;
+  kind: "board" | "task" | "note";
+  itemId: ObjectId;
+  createdAt: Date;
+}

@@ -46,6 +46,26 @@ export function TrashIcon() {
   );
 }
 
+export function ShareIcon() {
+  return (
+    <Svg>
+      <circle cx="18" cy="5" r="2.5" />
+      <circle cx="6" cy="12" r="2.5" />
+      <circle cx="18" cy="19" r="2.5" />
+      <path d="M8.2 10.7l7.6-4.4M8.2 13.3l7.6 4.4" />
+    </Svg>
+  );
+}
+
+export function BellIcon() {
+  return (
+    <Svg>
+      <path d="M6 10a6 6 0 1 1 12 0c0 3 1 4.5 2 6H4c1-1.5 2-3 2-6z" />
+      <path d="M9.5 19a2.5 2.5 0 0 0 5 0" />
+    </Svg>
+  );
+}
+
 export function MicIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">

@@ -16,10 +16,18 @@ function renderPicker(value: string = "b1") {
   const onChange = vi.fn();
   const onRemove = vi.fn();
   const onRename = vi.fn();
+  const onShare = vi.fn();
   render(
-    <BoardPills boards={boards} value={value} onChange={onChange} onRemove={onRemove} onRename={onRename} />
+    <BoardPills
+      boards={boards}
+      value={value}
+      onChange={onChange}
+      onRemove={onRemove}
+      onRename={onRename}
+      onShare={onShare}
+    />
   );
-  return { onChange, onRemove, onRename };
+  return { onChange, onRemove, onRename, onShare };
 }
 
 // Clicks the pencil for "Work" and types a new name into the editable text that replaces the select.
@@ -61,6 +69,12 @@ describe("BoardPills", () => {
     const { onRemove } = renderPicker();
     fireEvent.click(screen.getByRole("button", { name: "Remove board Work" }));
     expect(onRemove).toHaveBeenCalledWith(boards[0]);
+  });
+
+  it("asks the parent to share the selected board when the share icon is pressed", () => {
+    const { onShare } = renderPicker();
+    fireEvent.click(screen.getByRole("button", { name: "Share board Work" }));
+    expect(onShare).toHaveBeenCalledWith(boards[0]);
   });
 
   it("turns the select into the editable name, with no input box, when the pencil is pressed", () => {

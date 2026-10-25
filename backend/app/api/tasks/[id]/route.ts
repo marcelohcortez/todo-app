@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserId, unauthorized } from "@/lib/auth";
 import { boardBelongsToUser } from "@/lib/boards";
+import { resolveTaskAccess } from "@/lib/shares";
 import { cleanTitle, deleteTask, isPriority, updateTask } from "@/lib/tasks";
 import type { TaskPatch } from "@/lib/tasks";
 
@@ -27,6 +28,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     patch.priority = body.priority;
   }
   if (body.boardId !== undefined) {
+    // A friend with access to this task may edit it, but moving it to another board is for the owner only.
+    const access = await resolveTaskAccess(userId, params.id);
+    if (access && access.ownerId !== userId) {
+      return NextResponse.json({ error: "Only the task's owner can move it to another board" }, { status: 403 });
+    }
     // null takes the task off its board.
     if (body.boardId !== null && !(await boardBelongsToUser(userId, body.boardId))) {
       return NextResponse.json({ error: "Board not found" }, { status: 400 });

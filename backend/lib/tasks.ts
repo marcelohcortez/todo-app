@@ -4,7 +4,7 @@ import { boardIdsNamed, createBoard } from "./boards";
 import { getDb } from "./mongodb";
 import { PAGE_SIZE, pageOf } from "./pagination";
 import { escapeRegex } from "./search";
-import { notifyChanged } from "./realtime";
+import { deleteSharesForItem, notifyAccess, resolveTaskAccess } from "./shares";
 import { PRIORITIES, PRIORITY_RANK } from "./types";
 import type { Priority, Task, TaskDoc } from "./types";
 
@@ -194,10 +194,13 @@ export async function createTask(
     updatedAt: now,
   };
   await (await tasksCollection()).insertOne(doc);
-  await notifyChanged(userId);
+  await notifyAccess(userId, { boardId: targetBoardId, taskId: doc._id.toHexString() });
   return toTask(doc);
 }
 
+// `userId` is whoever is making the change: the owner, or a friend with access to the task (directly,
+// or through its board). When it is a friend, the update is applied under the owner's id instead, and
+// everyone with access — owner and friends alike — is notified to refetch.
 export async function updateTask(userId: string, id: string, patch: TaskPatch): Promise<Task | null> {
   if (!ObjectId.isValid(id)) return null;
 
@@ -211,23 +214,45 @@ export async function updateTask(userId: string, id: string, patch: TaskPatch): 
     set.completedAt = patch.completed ? now : null;
   }
 
-  const doc = await (await tasksCollection()).findOneAndUpdate(
+  const col = await tasksCollection();
+  let ownerId = userId;
+  let doc = await col.findOneAndUpdate(
     { _id: new ObjectId(id), userId: new ObjectId(userId) },
     { $set: set },
     { returnDocument: "after" }
   );
-  if (!doc) return null;
-  await notifyChanged(userId);
+  if (!doc) {
+    const access = await resolveTaskAccess(userId, id);
+    if (!access) return null;
+    ownerId = access.ownerId;
+    doc = await col.findOneAndUpdate(
+      { _id: new ObjectId(id), userId: new ObjectId(ownerId) },
+      { $set: set },
+      { returnDocument: "after" }
+    );
+    if (!doc) return null;
+  }
+
+  await notifyAccess(ownerId, { boardId: doc.boardId ? doc.boardId.toHexString() : null, taskId: id });
   return toTask(doc);
 }
 
 export async function deleteTask(userId: string, id: string): Promise<boolean> {
   if (!ObjectId.isValid(id)) return false;
-  const res = await (await tasksCollection()).deleteOne({
-    _id: new ObjectId(id),
-    userId: new ObjectId(userId),
-  });
-  if (res.deletedCount !== 1) return false;
-  await notifyChanged(userId);
+  const oid = new ObjectId(id);
+  const col = await tasksCollection();
+
+  let ownerId = userId;
+  let doc = await col.findOneAndDelete({ _id: oid, userId: new ObjectId(userId) });
+  if (!doc) {
+    const access = await resolveTaskAccess(userId, id);
+    if (!access) return false;
+    ownerId = access.ownerId;
+    doc = await col.findOneAndDelete({ _id: oid, userId: new ObjectId(ownerId) });
+    if (!doc) return false;
+  }
+
+  await deleteSharesForItem("task", id);
+  await notifyAccess(ownerId, { boardId: doc.boardId ? doc.boardId.toHexString() : null, taskId: id });
   return true;
 }

@@ -4,6 +4,7 @@ import { getCurrentUserId, unauthorized } from "@/lib/auth";
 import { boardBelongsToUser } from "@/lib/boards";
 import { parsePage } from "@/lib/pagination";
 import { searchQuery } from "@/lib/search";
+import { resolveBoardViewAccess } from "@/lib/shares";
 import { cleanTitle, createTask, isPriority, isStatusFilter, listTaskPage } from "@/lib/tasks";
 
 // GET /api/tasks?status=active|done|all&page=1&boardId=<id>|none&q=<text>
@@ -49,10 +50,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid priority" }, { status: 400 });
   }
   const boardId = body?.boardId ?? null;
+  // A friend with access to a shared board may add tasks to it too; the task is still owned by
+  // whoever owns the board, same as every other task on it.
+  let ownerId = userId;
   if (boardId !== null && !(await boardBelongsToUser(userId, boardId))) {
-    return NextResponse.json({ error: "Board not found" }, { status: 400 });
+    const access = await resolveBoardViewAccess(userId, boardId);
+    if (!access) return NextResponse.json({ error: "Board not found" }, { status: 400 });
+    ownerId = access.ownerId;
   }
 
-  const task = await createTask(userId, title, priority, boardId);
+  const task = await createTask(ownerId, title, priority, boardId);
   return NextResponse.json({ task }, { status: 201 });
 }

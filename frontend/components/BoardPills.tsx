@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { cn } from "./ui/cn";
-import { PencilIcon, TrashIcon } from "./ui/icons";
+import { PencilIcon, ShareIcon, TrashIcon } from "./ui/icons";
 import { field, iconButton, iconButtonDanger } from "./ui/styles";
 import type { Board } from "@/lib/types";
 
@@ -17,6 +17,8 @@ interface Props {
   onRemove: (board: Board) => void;
   // Saves a new name for a board. The page shows the result.
   onRename: (board: Board, name: string) => void;
+  // Opens the share sheet for a board.
+  onShare: (board: Board) => void;
 }
 
 interface RenameTextProps {
@@ -75,7 +77,7 @@ function RenameText({ name, onSave, onCancel }: RenameTextProps) {
 }
 
 // A select that chooses which board's tasks are shown. With a board selected, a pencil renames it and a trash can removes it.
-export default function BoardPills({ boards, value, onChange, onRemove, onRename }: Props) {
+export default function BoardPills({ boards, value, onChange, onRemove, onRename, onShare }: Props) {
   const [editing, setEditing] = useState(false);
   const selected = boards.find((b) => b.id === value) ?? null;
 
@@ -116,6 +118,15 @@ export default function BoardPills({ boards, value, onChange, onRemove, onRename
             title="Rename board"
           >
             <PencilIcon />
+          </button>
+          <button
+            type="button"
+            className={iconButton}
+            onClick={() => onShare(selected)}
+            aria-label={`Share board ${selected.name}`}
+            title="Share board"
+          >
+            <ShareIcon />
           </button>
           <button
             type="button"

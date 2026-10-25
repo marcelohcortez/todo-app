@@ -27,6 +27,12 @@ export async function currentUser(userId: string): Promise<{ email: string; isAd
   return { email: user.email, isAdmin: user.email === adminEmail() };
 }
 
+/** Looks up an account by email. Used to resolve who a friend request is for. */
+export async function findUserByEmail(email: string): Promise<{ id: string; email: string } | null> {
+  const user = await (await usersCollection()).findOne({ email }, { projection: { email: 1 } });
+  return user ? { id: user._id.toHexString(), email: user.email } : null;
+}
+
 export interface UserSummary {
   email: string;
   createdAt: string;

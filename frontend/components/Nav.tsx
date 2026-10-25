@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import NotificationsBell from "./NotificationsBell";
 import OptionsMenu from "./OptionsMenu";
 import Button from "./ui/Button";
 import Sheet from "./ui/Sheet";
 import { cn } from "./ui/cn";
 
-type Current = "active" | "done" | "notes" | "settings" | "users";
+type Current = "active" | "done" | "notes" | "settings" | "users" | "friends" | "shared";
 
 const ICON = {
   home: <path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
@@ -71,6 +72,16 @@ export default function Nav({ current, onAddTask, onAddNote }: Props) {
     router.push("/users");
   }
 
+  function openFriends() {
+    setOptionsOpen(false);
+    router.push("/friends");
+  }
+
+  function openShared() {
+    setOptionsOpen(false);
+    router.push("/shared");
+  }
+
   useEffect(() => {
     fetch("/api/auth/me", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
@@ -125,27 +136,34 @@ export default function Nav({ current, onAddTask, onAddNote }: Props) {
           <Link href="/done" className={cn(navLink, current === "done" && navLinkActive)}>
             Done
           </Link>
+          <Link href="/shared" className={cn(navLink, current === "shared" && navLinkActive)}>
+            Shared
+          </Link>
         </nav>
-        <div className="relative max-[720px]:hidden">
-          <Button
-            variant="outlined"
-            intent="gray"
-            size="sm"
-            onClick={() => setOptionsOpen((open) => !open)}
-            aria-haspopup="menu"
-            aria-expanded={optionsOpen}
-          >
-            Options
-          </Button>
-          {optionsOpen && (
-            <OptionsMenu
-              variant="dropdown"
-              isAdmin={isAdmin}
-              onClose={() => setOptionsOpen(false)}
-              onAddUser={openAddUser}
-              onLogout={logout}
-            />
-          )}
+        <div className="flex items-center gap-2">
+          <NotificationsBell />
+          <div className="relative max-[720px]:hidden">
+            <Button
+              variant="outlined"
+              intent="gray"
+              size="sm"
+              onClick={() => setOptionsOpen((open) => !open)}
+              aria-haspopup="menu"
+              aria-expanded={optionsOpen}
+            >
+              Options
+            </Button>
+            {optionsOpen && (
+              <OptionsMenu
+                variant="dropdown"
+                isAdmin={isAdmin}
+                onClose={() => setOptionsOpen(false)}
+                onAddUser={openAddUser}
+                onFriends={openFriends}
+                onLogout={logout}
+              />
+            )}
+          </div>
         </div>
       </header>
 
@@ -168,6 +186,8 @@ export default function Nav({ current, onAddTask, onAddNote }: Props) {
           isAdmin={isAdmin}
           onClose={() => setOptionsOpen(false)}
           onAddUser={openAddUser}
+          onFriends={openFriends}
+          onShared={openShared}
           onLogout={logout}
         />
       )}

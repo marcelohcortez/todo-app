@@ -12,15 +12,18 @@ interface Props {
   isAdmin: boolean;
   onClose: () => void;
   onAddUser: () => void;
+  onFriends: () => void;
+  // Only used by the sheet variant: on desktop, Shared already has its own top-nav tab.
+  onShared?: () => void;
   onLogout: () => void;
 }
 
 const menuItem =
   "block w-full rounded-lg px-3 py-2.5 text-left text-sm text-gray-200 transition hover:bg-primary-500/10 active:bg-primary-500/15";
 
-// Settings, Add user (admin only) and Log out. Nav renders one variant per screen size;
-// the classes below hide whichever one does not fit the screen.
-export default function OptionsMenu({ variant, isAdmin, onClose, onAddUser, onLogout }: Props) {
+// Settings, Friends, Add user (admin only) and Log out (plus Shared, on phones only). Nav renders one
+// variant per screen size; the classes below hide whichever one does not fit the screen.
+export default function OptionsMenu({ variant, isAdmin, onClose, onAddUser, onFriends, onShared, onLogout }: Props) {
   if (variant === "dropdown") {
     return (
       <>
@@ -34,6 +37,9 @@ export default function OptionsMenu({ variant, isAdmin, onClose, onAddUser, onLo
           <Link href="/settings" role="menuitem" onClick={onClose} className={menuItem}>
             Settings
           </Link>
+          <button type="button" role="menuitem" onClick={onFriends} className={menuItem}>
+            Friends
+          </button>
           {isAdmin && (
             <button type="button" role="menuitem" onClick={onAddUser} className={menuItem}>
               Add user
@@ -53,6 +59,14 @@ export default function OptionsMenu({ variant, isAdmin, onClose, onAddUser, onLo
         <Link href="/settings" onClick={onClose} className={buttonClass({ variant: "outlined", intent: "gray", size: "lg" })}>
           Settings
         </Link>
+        <Button variant="outlined" intent="gray" size="lg" onClick={onFriends}>
+          Friends
+        </Button>
+        {onShared && (
+          <Button variant="outlined" intent="gray" size="lg" onClick={onShared}>
+            Shared
+          </Button>
+        )}
         {isAdmin && (
           <Button variant="outlined" intent="gray" size="lg" onClick={onAddUser}>
             Add user
