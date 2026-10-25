@@ -224,6 +224,9 @@ export async function updateTask(userId: string, id: string, patch: TaskPatch): 
   if (!doc) {
     const access = await resolveTaskAccess(userId, id);
     if (!access) return null;
+    // Only the owner may move a task to another board, even when the caller reaches this
+    // through a surface (like the MCP tools) that has no HTTP-layer check of its own.
+    if (patch.boardId !== undefined) return null;
     ownerId = access.ownerId;
     doc = await col.findOneAndUpdate(
       { _id: new ObjectId(id), userId: new ObjectId(ownerId) },

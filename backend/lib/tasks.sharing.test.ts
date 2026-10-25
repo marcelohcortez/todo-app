@@ -69,6 +69,22 @@ describe("updateTask with a friend acting on a shared task", () => {
     const task = seedTask(null);
     expect(await updateTask(STRANGER, task._id.toHexString(), { title: "nope" })).toBeNull();
   });
+
+  it("refuses a friend trying to move the task onto a board of their own", async () => {
+    const task = seedTask(null);
+    await shareItem(OWNER, FRIEND, "task", task._id.toHexString());
+    const friendBoard = {
+      _id: new ObjectId(),
+      userId: new ObjectId(FRIEND),
+      name: "Friend's board",
+      createdAt: new Date(),
+    };
+    fakeDb.seed("boards", [friendBoard]);
+
+    expect(await updateTask(FRIEND, task._id.toHexString(), { boardId: friendBoard._id.toHexString() })).toBeNull();
+    const stored = await fakeDb.collection("tasks").findOne({ _id: task._id });
+    expect(stored?.boardId).toBeNull();
+  });
 });
 
 describe("createTask on a shared board", () => {
