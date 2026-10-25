@@ -171,6 +171,13 @@ export async function listTasks(
   return docs.map(toTask);
 }
 
+/** True if the task exists and belongs to this user directly (not merely shared with them). */
+export async function taskBelongsToUser(userId: string, id: string): Promise<boolean> {
+  if (!ObjectId.isValid(id)) return false;
+  const doc = await (await tasksCollection()).findOne({ _id: new ObjectId(id), userId: new ObjectId(userId) });
+  return doc !== null;
+}
+
 export const DEFAULT_BOARD_NAME = "general";
 
 /** Creates a task. Without a board it goes to the "general" board, which is created if it does not exist yet. */

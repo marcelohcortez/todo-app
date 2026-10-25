@@ -9,6 +9,7 @@ import {
   isPriority,
   isStatusFilter,
   listTasks,
+  taskBelongsToUser,
   updateTask,
 } from "./tasks";
 import type { TaskPatch } from "./tasks";
@@ -138,6 +139,9 @@ async function callTool(userId: string, name: string, args: Record<string, unkno
 
     case "update_task": {
       if (typeof args.id !== "string") throw new ToolError("id is required");
+      // Consistent with list_tasks/list_boards/create_task: the MCP tools only ever see and
+      // act on the caller's own boards and tasks, never ones merely shared with them.
+      if (!(await taskBelongsToUser(userId, args.id))) throw new ToolError("task not found");
       const patch: TaskPatch = {};
       if (args.title !== undefined) {
         const title = cleanTitle(args.title);
@@ -158,6 +162,7 @@ async function callTool(userId: string, name: string, args: Record<string, unkno
     case "set_task_completed": {
       if (typeof args.id !== "string") throw new ToolError("id is required");
       if (typeof args.completed !== "boolean") throw new ToolError("completed must be true or false");
+      if (!(await taskBelongsToUser(userId, args.id))) throw new ToolError("task not found");
       const task = await updateTask(userId, args.id, { completed: args.completed });
       if (!task) throw new ToolError("task not found");
       return task;
@@ -165,6 +170,7 @@ async function callTool(userId: string, name: string, args: Record<string, unkno
 
     case "delete_task": {
       if (typeof args.id !== "string") throw new ToolError("id is required");
+      if (!(await taskBelongsToUser(userId, args.id))) throw new ToolError("task not found");
       const ok = await deleteTask(userId, args.id);
       if (!ok) throw new ToolError("task not found");
       return { deleted: true, id: args.id };
