@@ -4,7 +4,7 @@ import { getDb } from "./mongodb";
 import { PAGE_SIZE, pageOf } from "./pagination";
 import { escapeRegex } from "./search";
 import { notifyChanged } from "./realtime";
-import { deleteSharesForItem, notifyAccess, resolveNoteAccess } from "./shares";
+import { deleteSharesForItem, notifyAccess, resolveNoteAccess, withOwnerFallback } from "./shares";
 import type { Note, NoteDeletionDoc, NoteDoc } from "./types";
 
 // Tombstones older than this are dropped. A vault that has not synced for this long rebuilds from scratch.
@@ -85,50 +85,36 @@ export async function updateNote(userId: string, id: string, body: string): Prom
   const col = await notesCollection();
   const now = new Date();
 
-  let ownerId = userId;
-  let doc = await col.findOneAndUpdate(
-    { _id: new ObjectId(id), userId: new ObjectId(userId) },
-    { $set: { body, updatedAt: now } },
-    { returnDocument: "after" }
-  );
-  if (!doc) {
-    const access = await resolveNoteAccess(userId, id);
-    if (!access) return null;
-    ownerId = access.ownerId;
-    doc = await col.findOneAndUpdate(
+  const result = await withOwnerFallback(userId, id, resolveNoteAccess, (ownerId) =>
+    col.findOneAndUpdate(
       { _id: new ObjectId(id), userId: new ObjectId(ownerId) },
       { $set: { body, updatedAt: now } },
       { returnDocument: "after" }
-    );
-    if (!doc) return null;
-  }
+    )
+  );
+  if (!result) return null;
 
-  await notifyAccess(ownerId, { noteId: id });
-  return toNote(doc);
+  await notifyAccess(result.ownerId, { noteId: id });
+  return toNote(result.value);
 }
 
 export async function deleteNote(userId: string, id: string): Promise<boolean> {
   if (!ObjectId.isValid(id)) return false;
   const col = await notesCollection();
 
-  let ownerId = userId;
-  let doc = await col.findOneAndDelete({ _id: new ObjectId(id), userId: new ObjectId(userId) });
-  if (!doc) {
-    const access = await resolveNoteAccess(userId, id);
-    if (!access) return false;
-    ownerId = access.ownerId;
-    doc = await col.findOneAndDelete({ _id: new ObjectId(id), userId: new ObjectId(ownerId) });
-    if (!doc) return false;
-  }
+  const result = await withOwnerFallback(userId, id, resolveNoteAccess, (ownerId) =>
+    col.findOneAndDelete({ _id: new ObjectId(id), userId: new ObjectId(ownerId) })
+  );
+  if (!result) return false;
 
   await (await deletionsCollection()).insertOne({
     _id: new ObjectId(),
-    userId: new ObjectId(ownerId),
+    userId: new ObjectId(result.ownerId),
     noteId: id,
     deletedAt: new Date(),
   });
   await deleteSharesForItem("note", id);
-  await notifyAccess(ownerId, { noteId: id });
+  await notifyAccess(result.ownerId, { noteId: id });
   return true;
 }
 

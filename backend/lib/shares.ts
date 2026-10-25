@@ -119,6 +119,32 @@ export interface Access {
   ownerId: string;
 }
 
+export interface OwnerFallbackResult<T> {
+  ownerId: string;
+  value: T;
+}
+
+/**
+ * Runs `op` as the caller first (the common case: they own the item). If that finds nothing,
+ * resolves the caller's shared access and retries `op` under the real owner's id instead. Used
+ * by every task/note write that a friend may also perform via a share.
+ */
+export async function withOwnerFallback<T>(
+  userId: string,
+  id: string,
+  resolveAccess: (userId: string, id: string) => Promise<Access | null>,
+  op: (ownerId: string) => Promise<T | null>
+): Promise<OwnerFallbackResult<T> | null> {
+  const direct = await op(userId);
+  if (direct !== null) return { ownerId: userId, value: direct };
+
+  const access = await resolveAccess(userId, id);
+  if (!access) return null;
+  const viaShare = await op(access.ownerId);
+  if (viaShare === null) return null;
+  return { ownerId: access.ownerId, value: viaShare };
+}
+
 /** Whether `requestingUserId` may read/edit this task: they own it, or it (or its board) is shared with them. */
 export async function resolveTaskAccess(requestingUserId: string, taskId: string): Promise<Access | null> {
   if (!ObjectId.isValid(taskId)) return null;

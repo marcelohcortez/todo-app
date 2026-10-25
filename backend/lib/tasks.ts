@@ -4,7 +4,7 @@ import { boardIdsNamed, createBoard } from "./boards";
 import { getDb } from "./mongodb";
 import { PAGE_SIZE, pageOf } from "./pagination";
 import { escapeRegex } from "./search";
-import { deleteSharesForItem, notifyAccess, resolveTaskAccess } from "./shares";
+import { deleteSharesForItem, notifyAccess, resolveTaskAccess, withOwnerFallback } from "./shares";
 import { PRIORITIES, PRIORITY_RANK } from "./types";
 import type { Priority, Task, TaskDoc } from "./types";
 
@@ -222,29 +222,20 @@ export async function updateTask(userId: string, id: string, patch: TaskPatch): 
   }
 
   const col = await tasksCollection();
-  let ownerId = userId;
-  let doc = await col.findOneAndUpdate(
-    { _id: new ObjectId(id), userId: new ObjectId(userId) },
-    { $set: set },
-    { returnDocument: "after" }
-  );
-  if (!doc) {
-    const access = await resolveTaskAccess(userId, id);
-    if (!access) return null;
+  const result = await withOwnerFallback(userId, id, resolveTaskAccess, (ownerId) => {
     // Only the owner may move a task to another board, even when the caller reaches this
     // through a surface (like the MCP tools) that has no HTTP-layer check of its own.
-    if (patch.boardId !== undefined) return null;
-    ownerId = access.ownerId;
-    doc = await col.findOneAndUpdate(
+    if (ownerId !== userId && patch.boardId !== undefined) return Promise.resolve(null);
+    return col.findOneAndUpdate(
       { _id: new ObjectId(id), userId: new ObjectId(ownerId) },
       { $set: set },
       { returnDocument: "after" }
     );
-    if (!doc) return null;
-  }
+  });
+  if (!result) return null;
 
-  await notifyAccess(ownerId, { boardId: doc.boardId ? doc.boardId.toHexString() : null, taskId: id });
-  return toTask(doc);
+  await notifyAccess(result.ownerId, { boardId: result.value.boardId ? result.value.boardId.toHexString() : null, taskId: id });
+  return toTask(result.value);
 }
 
 export async function deleteTask(userId: string, id: string): Promise<boolean> {
@@ -252,17 +243,12 @@ export async function deleteTask(userId: string, id: string): Promise<boolean> {
   const oid = new ObjectId(id);
   const col = await tasksCollection();
 
-  let ownerId = userId;
-  let doc = await col.findOneAndDelete({ _id: oid, userId: new ObjectId(userId) });
-  if (!doc) {
-    const access = await resolveTaskAccess(userId, id);
-    if (!access) return false;
-    ownerId = access.ownerId;
-    doc = await col.findOneAndDelete({ _id: oid, userId: new ObjectId(ownerId) });
-    if (!doc) return false;
-  }
+  const result = await withOwnerFallback(userId, id, resolveTaskAccess, (ownerId) =>
+    col.findOneAndDelete({ _id: oid, userId: new ObjectId(ownerId) })
+  );
+  if (!result) return false;
 
   await deleteSharesForItem("task", id);
-  await notifyAccess(ownerId, { boardId: doc.boardId ? doc.boardId.toHexString() : null, taskId: id });
+  await notifyAccess(result.ownerId, { boardId: result.value.boardId ? result.value.boardId.toHexString() : null, taskId: id });
   return true;
 }
