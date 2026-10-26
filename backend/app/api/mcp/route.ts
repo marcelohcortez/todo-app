@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { readJsonBody } from "@/lib/http";
 import { handleMessage, userIdForMcpToken } from "@/lib/mcp";
 import { publicBaseUrl } from "@/lib/oauth";
 
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
 
   let body: unknown;
   try {
-    body = await req.json();
+    body = await readJsonBody(req);
   } catch {
     return NextResponse.json(
       { jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } },

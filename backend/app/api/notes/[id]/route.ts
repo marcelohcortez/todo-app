@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { readJsonBody } from "@/lib/http";
 import { getCurrentUserId, unauthorized } from "@/lib/auth";
 import { cleanBody, deleteNote, getNote, updateNote } from "@/lib/notes";
 
@@ -17,7 +18,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const userId = await getCurrentUserId();
   if (!userId) return unauthorized();
 
-  const body = cleanBody((await req.json().catch(() => null))?.body);
+  const body = cleanBody((await readJsonBody(req).catch(() => null))?.body);
   if (!body) {
     return NextResponse.json({ error: "Note text is required (max 20000 characters)" }, { status: 400 });
   }

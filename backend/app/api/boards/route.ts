@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { readJsonBody } from "@/lib/http";
 import { getCurrentUserId, unauthorized } from "@/lib/auth";
 import { cleanBoardName, createBoard, listBoardSummaries } from "@/lib/boards";
 
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) {
   const userId = await getCurrentUserId();
   if (!userId) return unauthorized();
 
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req).catch(() => null);
   const name = cleanBoardName(body?.name);
   if (!name) {
     return NextResponse.json({ error: "Board name is required (max 40 characters)" }, { status: 400 });

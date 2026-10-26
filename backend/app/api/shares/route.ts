@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { readJsonBody } from "@/lib/http";
 import { getCurrentUserId, unauthorized } from "@/lib/auth";
 import { shareItem, sharesForItem } from "@/lib/shares";
 
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
   const userId = await getCurrentUserId();
   if (!userId) return unauthorized();
 
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req).catch(() => null);
   const kind = body?.kind;
   const itemId = body?.itemId;
   const friendId = body?.friendId;

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { readJsonBody } from "@/lib/http";
 import { getCurrentUserId, unauthorized } from "@/lib/auth";
 import { createUser, currentUser, listUsers } from "@/lib/users";
 
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Only the admin can add users" }, { status: 403 });
   }
 
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req).catch(() => null);
   const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
   const password = typeof body?.password === "string" ? body.password : "";
 

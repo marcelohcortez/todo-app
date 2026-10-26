@@ -1,5 +1,6 @@
 import { randomBytes } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { readJsonBody } from "@/lib/http";
 import { ObjectId } from "mongodb";
 import { getCurrentUserId, unauthorized } from "@/lib/auth";
 import { usersCollection } from "@/lib/users";
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
   const userId = await getCurrentUserId();
   if (!userId) return unauthorized();
 
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req).catch(() => null);
   const trimmed = typeof body?.label === "string" ? body.label.trim() : "";
   if (trimmed.length > MAX_LABEL) {
     return NextResponse.json({ error: `Name must be ${MAX_LABEL} characters or fewer` }, { status: 400 });

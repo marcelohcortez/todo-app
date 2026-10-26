@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { readJsonBody } from "@/lib/http";
 import { getCurrentUserId, unauthorized } from "@/lib/auth";
 import { findClient, issueCode, publicBaseUrl, str } from "@/lib/oauth";
 
@@ -10,7 +11,7 @@ export async function POST(req: NextRequest) {
   const userId = await getCurrentUserId();
   if (!userId) return unauthorized();
 
-  const p: Record<string, unknown> = (await req.json().catch(() => null)) ?? {};
+  const p: Record<string, unknown> = (await readJsonBody(req).catch(() => null)) ?? {};
   const clientId = str(p.client_id);
   const redirectUri = str(p.redirect_uri);
 

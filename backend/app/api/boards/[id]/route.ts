@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { readJsonBody } from "@/lib/http";
 import { getCurrentUserId, unauthorized } from "@/lib/auth";
 import { boardBelongsToUser, cleanBoardName, removeBoard, renameBoard } from "@/lib/boards";
 
@@ -7,7 +8,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const userId = await getCurrentUserId();
   if (!userId) return unauthorized();
 
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req).catch(() => null);
   const name = cleanBoardName(body?.name);
   if (!name) {
     return NextResponse.json({ error: "Board name is required (max 40 characters)" }, { status: 400 });
@@ -29,7 +30,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const userId = await getCurrentUserId();
   if (!userId) return unauthorized();
 
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req).catch(() => null);
   if (body?.action === "delete") {
     if (!(await removeBoard(userId, params.id, { action: "delete" }))) {
       return NextResponse.json({ error: "Board not found" }, { status: 404 });

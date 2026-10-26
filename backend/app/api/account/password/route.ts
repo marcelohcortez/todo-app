@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { readJsonBody } from "@/lib/http";
 import { ObjectId } from "mongodb";
 import bcrypt from "bcryptjs";
 import { getCurrentUserId, unauthorized } from "@/lib/auth";
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
   const userId = await getCurrentUserId();
   if (!userId) return unauthorized();
 
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req).catch(() => null);
   const currentPassword = typeof body?.currentPassword === "string" ? body.currentPassword : "";
   const newPassword = typeof body?.newPassword === "string" ? body.newPassword : "";
 

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { readJsonBody } from "@/lib/http";
 import { CORS_HEADERS, isAllowedRedirectUri, registerClient } from "@/lib/oauth";
 
 export const dynamic = "force-dynamic";
@@ -6,7 +7,7 @@ export const dynamic = "force-dynamic";
 // Dynamic client registration (RFC 7591). Clients register here before starting sign-in.
 // Registering alone grants no access: a user must still approve on the consent page.
 export async function POST(req: NextRequest) {
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req).catch(() => null);
   const redirectUris: unknown[] = Array.isArray(body?.redirect_uris) ? body.redirect_uris : [];
   if (redirectUris.length === 0 || !redirectUris.every(isAllowedRedirectUri)) {
     return NextResponse.json(

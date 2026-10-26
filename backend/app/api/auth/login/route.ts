@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { readJsonBody } from "@/lib/http";
 import bcrypt from "bcryptjs";
 import { createSession } from "@/lib/auth";
 import { clientIp, takeAttempt, tooManyAttempts } from "@/lib/rateLimit";
@@ -9,7 +10,7 @@ import { usersCollection } from "@/lib/users";
 const WINDOW_SECONDS = 15 * 60;
 
 export async function POST(req: NextRequest) {
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req).catch(() => null);
   const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
   const password = typeof body?.password === "string" ? body.password : "";
 

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { readJsonBody } from "@/lib/http";
 import { ObjectId } from "mongodb";
 import { getCurrentUserId, unauthorized } from "@/lib/auth";
 import { boardBelongsToUser } from "@/lib/boards";
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
   const userId = await getCurrentUserId();
   if (!userId) return unauthorized();
 
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req).catch(() => null);
   const title = cleanTitle(body?.title);
   if (!title) {
     return NextResponse.json({ error: "Title is required (max 500 characters)" }, { status: 400 });

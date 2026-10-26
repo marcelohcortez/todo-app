@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { readJsonBody } from "@/lib/http";
 import { getCurrentUserId, unauthorized } from "@/lib/auth";
 import { acceptFriendRequest, removeFriendship } from "@/lib/friends";
 
@@ -7,7 +8,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { friendship
   const userId = await getCurrentUserId();
   if (!userId) return unauthorized();
 
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req).catch(() => null);
   if (body?.action !== "accept") {
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   }

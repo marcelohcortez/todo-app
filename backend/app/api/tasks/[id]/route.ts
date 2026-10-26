@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { readJsonBody } from "@/lib/http";
 import { getCurrentUserId, unauthorized } from "@/lib/auth";
 import { boardBelongsToUser } from "@/lib/boards";
 import { resolveTaskAccess } from "@/lib/shares";
@@ -10,7 +11,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const userId = await getCurrentUserId();
   if (!userId) return unauthorized();
 
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req).catch(() => null);
   if (typeof body !== "object" || body === null) {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }

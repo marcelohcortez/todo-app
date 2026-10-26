@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { readJsonBody } from "@/lib/http";
 import {
   ACCESS_TOKEN_TTL_SECONDS,
   CORS_HEADERS,
@@ -16,7 +17,7 @@ const NO_STORE = { ...CORS_HEADERS, "Cache-Control": "no-store" };
 export async function POST(req: NextRequest) {
   const isJson = req.headers.get("content-type")?.includes("application/json");
   const p: Record<string, unknown> = isJson
-    ? ((await req.json().catch(() => null)) ?? {})
+    ? ((await readJsonBody(req).catch(() => null)) ?? {})
     : Object.fromEntries(new URLSearchParams(await req.text()));
 
   if (str(p.grant_type) !== "authorization_code") {
