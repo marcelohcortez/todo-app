@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 import type { Collection, Document, Filter } from "mongodb";
-import { boardIdsNamed, createBoard } from "./boards";
+import { boardIdsNamed, findBoardByName } from "./boards";
 import { getDb } from "./mongodb";
 import { PAGE_SIZE, pageOf } from "./pagination";
 import { escapeRegex } from "./search";
@@ -180,7 +180,7 @@ export async function taskBelongsToUser(userId: string, id: string): Promise<boo
 
 export const DEFAULT_BOARD_NAME = "general";
 
-/** Creates a task. Without a board it goes to the "general" board, which is created if it does not exist yet. */
+/** Creates a task. Without a board, it goes to the "general" board if the user already has one, otherwise it has no board. */
 export async function createTask(
   userId: string,
   title: string,
@@ -188,13 +188,13 @@ export async function createTask(
   boardId: string | null
 ): Promise<Task> {
   const now = new Date();
-  const targetBoardId = boardId ?? (await createBoard(userId, DEFAULT_BOARD_NAME)).id;
+  const targetBoardId = boardId ?? (await findBoardByName(userId, DEFAULT_BOARD_NAME))?.id ?? null;
   const doc: TaskDoc = {
     _id: new ObjectId(),
     userId: new ObjectId(userId),
     title,
     priority,
-    boardId: new ObjectId(targetBoardId),
+    boardId: targetBoardId ? new ObjectId(targetBoardId) : null,
     completed: false,
     createdAt: now,
     completedAt: null,

@@ -51,7 +51,7 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
 
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState<Priority>("normal");
-  // The board chosen in the add form. Empty until the user picks one, then the first board is used.
+  // The board chosen in the add form. Empty means no board.
   const [boardChoice, setBoardChoice] = useState("");
   const [newBoardName, setNewBoardName] = useState("");
   const [addOpen, setAddOpen] = useState(false);
@@ -134,7 +134,7 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
     }
   }
 
-  // "" until the user picks a board in the add form ("Select board" is shown until then).
+  // "" means no board, chosen or left as the default in the add form.
   const addBoardId = boardChoice;
 
   function createBoard(name: string): Promise<boolean> {
@@ -151,8 +151,7 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
     const t = title.trim();
     if (!t) return;
     run(async () => {
-      if (!addBoardId) throw new Error("Select a board for the task");
-      let boardId = addBoardId;
+      let boardId: string | null = addBoardId || null;
       if (boardId === NEW_BOARD) {
         const name = newBoardName.trim();
         if (!name) throw new Error("Type a name for the new board");
@@ -168,7 +167,6 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
       setTitle("");
       setPriority("normal");
       setNewBoardName("");
-      // Back to "Select board", so each task gets a board chosen on purpose.
       setBoardChoice("");
       setAddOpen(false);
       setInlineOpen(false);

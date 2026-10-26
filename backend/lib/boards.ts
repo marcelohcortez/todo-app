@@ -81,6 +81,15 @@ export async function boardBelongsToUser(userId: string, boardId: unknown): Prom
   return doc !== null;
 }
 
+/** The user's board with this name (ignoring case), or null if they have none. */
+export async function findBoardByName(userId: string, name: string): Promise<Board | null> {
+  const doc = await (await boardsCollection()).findOne({
+    userId: new ObjectId(userId),
+    name: { $regex: `^${escapeRegex(name)}$`, $options: "i" },
+  });
+  return doc ? toBoard(doc) : null;
+}
+
 /**
  * Creates a board. If the user already has a board with the same name (ignoring case), that board is
  * returned instead, so a repeated "Create new board" does not make duplicates.
