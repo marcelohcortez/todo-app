@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 import type { Collection, Document, Filter } from "mongodb";
-import { boardIdsNamed, findBoardByName } from "./boards";
+import { boardIdsNamed } from "./boards";
 import { getDb } from "./mongodb";
 import { PAGE_SIZE, pageOf } from "./pagination";
 import { escapeRegex } from "./search";
@@ -178,9 +178,7 @@ export async function taskBelongsToUser(userId: string, id: string): Promise<boo
   return doc !== null;
 }
 
-export const DEFAULT_BOARD_NAME = "general";
-
-/** Creates a task. Without a board, it goes to the "general" board if the user already has one, otherwise it has no board. */
+/** Creates a task. Without a board, the task has no board. */
 export async function createTask(
   userId: string,
   title: string,
@@ -188,20 +186,19 @@ export async function createTask(
   boardId: string | null
 ): Promise<Task> {
   const now = new Date();
-  const targetBoardId = boardId ?? (await findBoardByName(userId, DEFAULT_BOARD_NAME))?.id ?? null;
   const doc: TaskDoc = {
     _id: new ObjectId(),
     userId: new ObjectId(userId),
     title,
     priority,
-    boardId: targetBoardId ? new ObjectId(targetBoardId) : null,
+    boardId: boardId ? new ObjectId(boardId) : null,
     completed: false,
     createdAt: now,
     completedAt: null,
     updatedAt: now,
   };
   await (await tasksCollection()).insertOne(doc);
-  await notifyAccess(userId, { boardId: targetBoardId, taskId: doc._id.toHexString() });
+  await notifyAccess(userId, { boardId, taskId: doc._id.toHexString() });
   return toTask(doc);
 }
 

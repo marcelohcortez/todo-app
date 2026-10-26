@@ -14,15 +14,15 @@ beforeEach(async () => {
 });
 
 describe("createTask without a boardId", () => {
-  it("uses the user's existing \"general\" board", async () => {
+  it("leaves the task without a board, even if the user has a \"general\" board", async () => {
     const board = { _id: new ObjectId(), userId: new ObjectId(OWNER), name: "General", createdAt: new Date() };
     fakeDb.seed("boards", [board]);
 
     const task = await createTask(OWNER, "Milk", "normal", null);
-    expect(task.boardId).toBe(board._id.toHexString());
+    expect(task.boardId).toBeNull();
   });
 
-  it("leaves the task without a board when the user has no \"general\" board", async () => {
+  it("leaves the task without a board when the user has no boards at all", async () => {
     const task = await createTask(OWNER, "Milk", "normal", null);
     expect(task.boardId).toBeNull();
   });
