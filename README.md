@@ -232,10 +232,13 @@ or transcribed in the browser by the microphone button.
 - Sessions are signed JWTs in an httpOnly cookie that lasts one year. Changing `AUTH_SECRET` logs everyone out.
   The secret lives only in the backend project.
 - Passwords are hashed with bcrypt. MCP tokens are stored only as SHA-256 hashes.
+- See [`docs/SECURITY.md`](docs/SECURITY.md) for what's in place (auth, rate limiting, headers, input
+  handling) and why.
 
 ## Tests
 
 Unit tests use [Vitest](https://vitest.dev) (the Vite test runner). Browser tests use [Playwright](https://playwright.dev).
+See [`docs/TESTING.md`](docs/TESTING.md) for what each test file covers.
 
 ```bash
 cd backend && npm test          # validation, mapping and token helpers
