@@ -107,6 +107,8 @@ export default function NotesApp() {
   const toast = useToast();
 
   const [body, setBody] = useState("");
+  // True while a new note is being saved. Stops a second tap from saving it twice.
+  const [saving, setSaving] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   // The inline add form on desktop stays hidden until "+ New note" is pressed.
   const [inlineOpen, setInlineOpen] = useState(false);
@@ -168,8 +170,9 @@ export default function NotesApp() {
   function addNote(e: FormEvent) {
     e.preventDefault();
     const text = body.trim();
-    if (!text) return;
+    if (!text || saving) return;
     setError("");
+    setSaving(true);
     api("/api/notes", { method: "POST", body: JSON.stringify({ body: text }) })
       .then(() => {
         setBody("");
@@ -181,7 +184,8 @@ export default function NotesApp() {
       .catch((err) => {
         setError((err as Error).message);
         toast((err as Error).message, "error");
-      });
+      })
+      .finally(() => setSaving(false));
   }
 
   function startEdit(note: Note) {
@@ -227,8 +231,8 @@ export default function NotesApp() {
         <Sheet label="New note" title="New note" onClose={() => setSheetOpen(false)}>
           <form className="grid gap-2" onSubmit={addNote}>
             <NoteField value={body} onChange={setBody} onError={setError} autoFocus />
-            <Button type="submit" size="lg">
-              Save note
+            <Button type="submit" size="lg" disabled={saving}>
+              {saving ? <Spinner label="Saving note" className="size-5" /> : "Save note"}
             </Button>
           </form>
           {error && <p className={cn("mt-3", errorText)}>{error}</p>}
@@ -250,7 +254,9 @@ export default function NotesApp() {
           <form className="mt-4 grid gap-2 rounded-xl border border-gray-800 bg-gray-900 p-3 shadow-lg shadow-black/20" onSubmit={addNote}>
             <NoteField value={body} onChange={setBody} onError={setError} autoFocus />
             <div className="flex justify-end">
-              <Button type="submit">Save note</Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? <Spinner label="Saving note" className="size-5" /> : "Save note"}
+              </Button>
             </div>
           </form>
         )}

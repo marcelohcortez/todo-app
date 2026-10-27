@@ -4,6 +4,7 @@ import { FormEvent, useRef } from "react";
 import MicButton from "./MicButton";
 import Button from "./ui/Button";
 import { cn } from "./ui/cn";
+import Spinner from "./ui/Spinner";
 import { field } from "./ui/styles";
 import { PRIORITIES } from "@/lib/types";
 import type { Board, Priority } from "@/lib/types";
@@ -29,6 +30,8 @@ interface Props {
   onSubmit: (e: FormEvent) => void;
   onError: (message: string) => void;
   autoFocus?: boolean;
+  // True while the task is being saved. The Add button is disabled and shows a spinner.
+  busy?: boolean;
 }
 
 export default function AddTaskForm({
@@ -45,6 +48,7 @@ export default function AddTaskForm({
   onSubmit,
   onError,
   autoFocus = false,
+  busy = false,
 }: Props) {
   // Text typed before dictation starts is kept; the spoken words are added after it.
   const spokenPrefix = useRef("");
@@ -106,8 +110,8 @@ export default function AddTaskForm({
           aria-label="New board name"
         />
       )}
-      <Button type="submit" className="col-span-2 min-[521px]:col-span-1">
-        Add
+      <Button type="submit" className="col-span-2 min-[521px]:col-span-1" disabled={busy}>
+        {busy ? <Spinner label="Adding task" className="size-5" /> : "Add"}
       </Button>
     </form>
   );

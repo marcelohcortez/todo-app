@@ -55,6 +55,8 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
   const [boardChoice, setBoardChoice] = useState("");
   const [newBoardName, setNewBoardName] = useState("");
   const [addOpen, setAddOpen] = useState(false);
+  // True while a new task is being saved. Stops a second tap from adding it twice.
+  const [saving, setSaving] = useState(false);
   // Desktop: the inline add form is shown only after "+ New task" is clicked.
   const [inlineOpen, setInlineOpen] = useState(false);
   // The "+ New board" form. It is closed whenever the add-task form is open, and the reverse.
@@ -149,7 +151,8 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
   function addTask(e: FormEvent) {
     e.preventDefault();
     const t = title.trim();
-    if (!t) return;
+    if (!t || saving) return;
+    setSaving(true);
     run(async () => {
       let boardId: string | null = addBoardId || null;
       if (boardId === NEW_BOARD) {
@@ -170,7 +173,7 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
       setBoardChoice("");
       setAddOpen(false);
       setInlineOpen(false);
-    }, "Task added");
+    }, "Task added").finally(() => setSaving(false));
   }
 
   function toggle(task: Task) {
@@ -267,6 +270,7 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
             onNewBoardNameChange={setNewBoardName}
             onSubmit={addTask}
             onError={setError}
+            busy={saving}
           />
           {error && <p className={cn("mt-3", errorText)}>{error}</p>}
         </Sheet>
@@ -327,6 +331,7 @@ export default function TaskApp({ view }: { view: "active" | "done" }) {
             onNewBoardNameChange={setNewBoardName}
             onSubmit={addTask}
             onError={setError}
+            busy={saving}
           />
         )}
 
