@@ -52,6 +52,7 @@ Rendered with React Testing Library in jsdom; network calls are mocked.
 
 | File | Covers |
 | ---- | ------ |
+| `AddTaskForm.test.tsx` | The Add button is enabled and labelled "Add" normally, and while a save is in progress it is disabled and shows a spinner instead of the text (so a second tap can't add the task twice). |
 | `AddUserPage.test.tsx` | Shows only a message to a non-admin (no form), shows the form and existing users to the admin, and shows nothing before the server has answered. |
 | `BoardPills.test.tsx` | The board selector and per-board actions: listing boards, switching the shown board, hiding edit/delete/share for "All boards", renaming a board inline (save on Enter, revert on Escape, save on blur), and asking the parent to delete or share the selected board. |
 | `FriendsPage.test.tsx` | Adding a friend by email always shows the same generic message (so it can't be used to test which emails have accounts), incoming requests show Accept/Decline and call the right endpoints, and removing a friend asks for confirmation. |
