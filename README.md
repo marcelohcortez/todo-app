@@ -112,11 +112,11 @@ Task objects include `boardId`, `createdAt` and `completedAt`. `list_boards` ret
 task counts (active, done and total). `list_tasks` takes `boardId` (or `"none"` for tasks without a board),
 and `create_task` and `update_task` take `boardId`.
 
-## Sync tasks and notes to your vault (to implement later)
+## Sync tasks and notes to your vault
 
-Nothing in this section is implemented yet, apart from the notes endpoint below, which the app already has.
-It is the plan for a script that copies your tasks and notes into an Obsidian vault. When you build it, the
-script goes in `scripts/sync-vault.mjs` and is run with Node.
+Implemented in `scripts/sync-vault.mjs`, run with Node (`node scripts/sync-vault.mjs`). Its pure
+formatting/merge logic lives in `scripts/vault-format.mjs` and is covered by
+`scripts/vault-format.test.mjs` (run with `node --test scripts/vault-format.test.mjs`).
 
 **What the vault gets**
 

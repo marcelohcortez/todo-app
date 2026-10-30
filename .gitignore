@@ -7,3 +7,5 @@ next-env.d.ts
 .env*.local
 *.tsbuildinfo
 .vercel
+scripts/.env.sync
+scripts/.notes-sync.json
