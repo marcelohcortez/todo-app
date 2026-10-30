@@ -1,10 +1,17 @@
 import { ObjectId } from "mongodb";
 import type { Collection } from "mongodb";
 import bcrypt from "bcryptjs";
+import { createTtlCache } from "./cache";
 import { getDb } from "./mongodb";
 import type { UserDoc } from "./types";
 
 let indexesReady = false;
+
+// currentUser() is called on every authenticated request just to get the email for the isAdmin
+// check. Nothing in this app ever changes a user's email after signup, so there's no write path
+// to invalidate on — the TTL alone bounds how long a (currently impossible) change would take to
+// show up.
+const currentUserCache = createTtlCache<{ email: string }>(5 * 60 * 1000);
 
 export async function usersCollection(): Promise<Collection<UserDoc>> {
   const col = (await getDb()).collection<UserDoc>("users");
@@ -22,9 +29,15 @@ function adminEmail(): string | null {
 }
 
 export async function currentUser(userId: string): Promise<{ email: string; isAdmin: boolean } | null> {
-  const user = await (await usersCollection()).findOne({ _id: new ObjectId(userId) }, { projection: { email: 1 } });
-  if (!user) return null;
-  return { email: user.email, isAdmin: user.email === adminEmail() };
+  let cached = currentUserCache.get(userId);
+  if (!cached) {
+    const user = await (await usersCollection()).findOne({ _id: new ObjectId(userId) }, { projection: { email: 1 } });
+    if (!user) return null;
+    cached = { email: user.email };
+    currentUserCache.set(userId, cached);
+  }
+  // isAdmin depends on ADMIN_EMAIL, not on anything cached, so it's always computed fresh.
+  return { email: cached.email, isAdmin: cached.email === adminEmail() };
 }
 
 /** Looks up an account by email. Used to resolve who a friend request is for. */
