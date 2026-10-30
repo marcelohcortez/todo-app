@@ -15,6 +15,7 @@ vi.mock("./mongodb", () => ({
         calls.deleteMany.push(filter);
         return { deletedCount: 0 };
       },
+      createIndex: async () => "ok",
     }),
   }),
 }));

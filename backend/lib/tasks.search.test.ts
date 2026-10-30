@@ -9,7 +9,10 @@ vi.mock("./mongodb", () => ({
   getDb: async () => ({
     collection: (name: string) =>
       name === "boards"
-        ? { find: () => ({ toArray: async () => boards.ids.map((_id) => ({ _id })) }) }
+        ? {
+            find: () => ({ toArray: async () => boards.ids.map((_id) => ({ _id })) }),
+            createIndex: async () => "ok",
+          }
         : {
             countDocuments: async (filter: unknown) => {
               calls.counted.push(filter);
@@ -17,6 +20,7 @@ vi.mock("./mongodb", () => ({
             },
             aggregate: () => ({ toArray: async () => [] }),
             deleteMany: async () => ({ deletedCount: 0 }),
+            createIndex: async () => "ok",
           },
   }),
 }));

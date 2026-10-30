@@ -19,8 +19,15 @@ export function toBoard(d: BoardDoc): Board {
   return { id: d._id.toHexString(), name: d.name, createdAt: d.createdAt.toISOString() };
 }
 
+let indexReady = false;
+
 async function boardsCollection(): Promise<Collection<BoardDoc>> {
-  return (await getDb()).collection<BoardDoc>("boards");
+  const col = (await getDb()).collection<BoardDoc>("boards");
+  if (!indexReady) {
+    await col.createIndex({ userId: 1, createdAt: 1 });
+    indexReady = true;
+  }
+  return col;
 }
 
 export async function listBoards(userId: string): Promise<Board[]> {

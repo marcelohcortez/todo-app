@@ -27,12 +27,28 @@ export function toNote(d: NoteDoc): Note {
   };
 }
 
+let indexReady = false;
+
 async function notesCollection(): Promise<Collection<NoteDoc>> {
-  return (await getDb()).collection<NoteDoc>("notes");
+  const col = (await getDb()).collection<NoteDoc>("notes");
+  if (!indexReady) {
+    // The list page (newest first) and changesSince (filtered by updatedAt) are the two query shapes.
+    await col.createIndex({ userId: 1, createdAt: -1 });
+    await col.createIndex({ userId: 1, updatedAt: 1 });
+    indexReady = true;
+  }
+  return col;
 }
 
+let deletionsIndexReady = false;
+
 async function deletionsCollection(): Promise<Collection<NoteDeletionDoc>> {
-  return (await getDb()).collection<NoteDeletionDoc>("note_deletions");
+  const col = (await getDb()).collection<NoteDeletionDoc>("note_deletions");
+  if (!deletionsIndexReady) {
+    await col.createIndex({ userId: 1, deletedAt: 1 });
+    deletionsIndexReady = true;
+  }
+  return col;
 }
 
 export interface NotePage {

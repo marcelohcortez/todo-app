@@ -46,8 +46,18 @@ export function toTask(d: TaskDoc): Task {
   };
 }
 
+let indexReady = false;
+
 async function tasksCollection(): Promise<Collection<TaskDoc>> {
-  return (await getDb()).collection<TaskDoc>("tasks");
+  const col = (await getDb()).collection<TaskDoc>("tasks");
+  if (!indexReady) {
+    // The listing/filter path: always by userId, often narrowed to a board, sorted newest first.
+    await col.createIndex({ userId: 1, boardId: 1, completed: 1, createdAt: -1 });
+    // The retention purge, which runs across all users and only ever filters on these two fields.
+    await col.createIndex({ completed: 1, completedAt: 1 });
+    indexReady = true;
+  }
+  return col;
 }
 
 // Completed tasks are shown for this many days, then deleted from the database.
