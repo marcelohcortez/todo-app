@@ -57,11 +57,11 @@
 
 ## Tracking
 
-- [ ] Database Indexing — in progress, see issue #19 (PR #28 open)
-- [ ] Performance Optimization — in progress, see issue #20 (caching layer, PR #29 open)
-- [ ] Security Enhancements — in progress, see issue #21 (PR #27 open)
+- [x] Database Indexing — done, issue #19, merged via PR #28
+- [x] Performance Optimization — done, issue #20 (caching layer for `currentUser` lookups), merged via PR #29
+- [x] Security Enhancements — done, issue #21 (rate limiting on OAuth token/register endpoints), merged via PR #27
 - [x] Error Handling Standardization — audit found this already satisfied (consistent `{ error }` + status-code shape across routes); issue #25 closed, no code change needed
 - [x] Testing Coverage Improvement — audit found this already satisfied (extensive backend unit, frontend component, and Playwright e2e coverage, see `docs/TESTING.md`); issue #26 closed, no code change needed
-- [ ] Code Organization Refactoring — in progress, see issue #22
-- [ ] Vault Sync Script Implementation — in progress, see issue #23
-- [ ] Documentation Updates — in progress, see issue #24 (this change)
+- [x] Code Organization Refactoring — audit found no concrete duplication or schema inconsistency worth fixing; issue #22 closed, no code change needed
+- [x] Vault Sync Script Implementation — done, issue #23 (`scripts/sync-vault.mjs`), merged via PR #31
+- [x] Documentation Updates — done, issue #24 (API docs, ADRs, DB schema docs), merged via PR #30
