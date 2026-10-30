@@ -8,13 +8,24 @@ import {
   pkceMatches,
   str,
 } from "@/lib/oauth";
+import { clientIp, takeAttempt, tooManyAttempts } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 
 const NO_STORE = { ...CORS_HEADERS, "Cache-Control": "no-store" };
+// A code exchange is normally one try per sign-in; this only stops an IP hammering the endpoint
+// to guess code_verifier values or exhaust codes before the real client can redeem them.
+const WINDOW_SECONDS = 15 * 60;
 
 // Exchanges an authorization code for an access token (OAuth 2.1, PKCE required).
 export async function POST(req: NextRequest) {
+  const attempt = await takeAttempt(`oauth-token:ip:${clientIp(req)}`, 20, WINDOW_SECONDS);
+  if (!attempt.allowed) {
+    const res = tooManyAttempts(attempt.retryAfterSeconds);
+    for (const [key, value] of Object.entries(NO_STORE)) res.headers.set(key, value);
+    return res;
+  }
+
   const isJson = req.headers.get("content-type")?.includes("application/json");
   const p: Record<string, unknown> = isJson
     ? ((await readJsonBody(req).catch(() => null)) ?? {})
