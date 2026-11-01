@@ -5,6 +5,8 @@ import { SignJWT, jwtVerify } from "jose";
 const COOKIE_NAME = "session";
 // One year. The cookie is re-issued on each login; after a year you log in again.
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
+// Current key identifier (rotate by changing this value; old tokens with the previous key still verify).
+const CURRENT_KEY_ID = process.env.AUTH_SECRET_KEY_ID ?? "v1";
 
 function secretKey(): Uint8Array {
   const secret = process.env.AUTH_SECRET;
@@ -14,9 +16,20 @@ function secretKey(): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
+/** Keys that are allowed to verify tokens. Always includes the current key; optionally the previous key during rotation. */
+function allowedSecrets(): Array<{ id: string; key: Uint8Array }> {
+  const current = { id: CURRENT_KEY_ID, key: secretKey() };
+  // If AUTH_SECRET_PREV is set, it represents a rotated-out secret that still needs to verify existing tokens.
+  const prevSecret = process.env.AUTH_SECRET_PREV;
+  if (!prevSecret || prevSecret.length < 32) {
+    return [current];
+  }
+  return [current, { id: "prev", key: new TextEncoder().encode(prevSecret) }];
+}
+
 export async function createSession(userId: string): Promise<void> {
   const token = await new SignJWT({})
-    .setProtectedHeader({ alg: "HS256" })
+    .setProtectedHeader({ alg: "HS256", kid: CURRENT_KEY_ID })
     .setSubject(userId)
     .setIssuedAt()
     .setExpirationTime(Math.floor(Date.now() / 1000) + MAX_AGE_SECONDS)
@@ -39,8 +52,17 @@ export async function getCurrentUserId(): Promise<string | null> {
   const token = cookies().get(COOKIE_NAME)?.value;
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, secretKey());
-    return typeof payload.sub === "string" ? payload.sub : null;
+    // Try all allowed secrets (current + any rotated-out previous key).
+    for (const { key } of allowedSecrets()) {
+      try {
+        const { payload } = await jwtVerify(token, key);
+        return typeof payload.sub === "string" ? payload.sub : null;
+      } catch {
+        // Wrong key for this token, try the next one.
+        continue;
+      }
+    }
+    return null;
   } catch {
     return null;
   }
