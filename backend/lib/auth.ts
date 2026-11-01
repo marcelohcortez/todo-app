@@ -17,7 +17,7 @@ function secretKey(): Uint8Array {
 }
 
 /** Keys that are allowed to verify tokens. Always includes the current key; optionally the previous key during rotation. */
-function allowedSecrets(): Array<{ id: string; key: Uint8Array }> {
+export function allowedSecrets(): Array<{ id: string; key: Uint8Array }> {
   const current = { id: CURRENT_KEY_ID, key: secretKey() };
   // If AUTH_SECRET_PREV is set, it represents a rotated-out secret that still needs to verify existing tokens.
   const prevSecret = process.env.AUTH_SECRET_PREV;
