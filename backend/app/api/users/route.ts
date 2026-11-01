@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { readJsonBody } from "@/lib/http";
 import { getCurrentUserId, unauthorized } from "@/lib/auth";
 import { createUser, currentUser, listUsers } from "@/lib/users";
+import { z } from "zod";
+
+// Schema for admin-created user accounts.
+const CreateUserSchema = z.object({
+  email: z.string().email("Enter a valid email").transform((v) => v.trim().toLowerCase()),
+  password: z.string().min(12, "Password must be at least 12 characters").max(200),
+});
 
 // GET /api/users  (admin only): every account with its email and when it was added.
 export async function GET() {
@@ -22,16 +29,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Only the admin can add users" }, { status: 403 });
   }
 
-  const body = await readJsonBody(req).catch(() => null);
-  const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
-  const password = typeof body?.password === "string" ? body.password : "";
+  const raw = await readJsonBody(req).catch(() => null);
+  const result = CreateUserSchema.safeParse(raw);
+  if (!result.success) {
+    return NextResponse.json(
+      { error: result.error.issues[0].message },
+      { status: 400 }
+    );
+  }
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return NextResponse.json({ error: "Enter a valid email" }, { status: 400 });
-  }
-  if (password.length < 8 || password.length > 200) {
-    return NextResponse.json({ error: "Password must be 8 to 200 characters" }, { status: 400 });
-  }
+  const { email, password } = result.data;
 
   try {
     await createUser(email, password);
