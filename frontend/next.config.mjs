@@ -17,6 +17,8 @@ const securityHeaders = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  swcMinify: true,
+  optimizePackageImports: ['@tailus/themer', 'clsx', 'pusher-js'],
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
