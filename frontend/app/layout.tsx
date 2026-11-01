@@ -2,7 +2,7 @@ import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import { ToastProvider } from "@/components/Toast";
-import ErrorBoundary from "@/components/ErrorBoundary";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export const metadata: Metadata = {
   title: "Keeptrack",
