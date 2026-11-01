@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
     if ((err as { code?: number }).code === 11000) {
       return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 });
     }
+    console.error("createUser failed:", err);
     throw err;
   }
   return NextResponse.json({ user: { email } }, { status: 201 });
