@@ -4,7 +4,7 @@ import { readJsonBody } from "@/lib/http";
 import { ObjectId } from "mongodb";
 import { getCurrentUserId, unauthorized } from "@/lib/auth";
 import { usersCollection } from "@/lib/users";
-import { LEGACY_TOKEN_ID, generateMcpToken, hashToken } from "@/lib/mcp";
+import { LEGACY_TOKEN_ID, generateMcpToken, hashToken, getMcpTokenExpiry, isTokenExpired } from "@/lib/mcp";
 import type { McpTokenDoc } from "@/lib/types";
 
 const MAX_LABEL = 40;
@@ -15,13 +15,16 @@ export async function GET() {
   if (!userId) return unauthorized();
 
   const user = await (await usersCollection()).findOne({ _id: new ObjectId(userId) });
-  const tokens: { id: string; label: string; createdAt: string | null }[] = (user?.mcpTokens ?? []).map((t) => ({
-    id: t.id,
-    label: t.label,
-    createdAt: t.createdAt.toISOString(),
-  }));
+  const tokens: { id: string; label: string; createdAt: string; expiresAt?: string }[] = (user?.mcpTokens ?? [])
+    .filter((t) => !isTokenExpired(t.expiresAt || new Date(Date.now() + 86400000)))
+    .map((t) => ({
+      id: t.id,
+      label: t.label,
+      createdAt: t.createdAt.toISOString(),
+      expiresAt: t.expiresAt?.toISOString(),
+    }));
   // A token saved before named tokens existed has no name or date.
-  if (user?.mcpTokenHash) tokens.unshift({ id: LEGACY_TOKEN_ID, label: "Earlier token", createdAt: null });
+  if (user?.mcpTokenHash) tokens.unshift({ id: LEGACY_TOKEN_ID, label: "Earlier token", createdAt: "" });
   return NextResponse.json({ tokens });
 }
 
@@ -44,6 +47,7 @@ export async function POST(req: NextRequest) {
     label,
     hash: hashToken(token),
     createdAt: new Date(),
+    expiresAt: getMcpTokenExpiry(),
   };
   await (await usersCollection()).updateOne({ _id: new ObjectId(userId) }, { $push: { mcpTokens: doc } });
   return NextResponse.json({ token });

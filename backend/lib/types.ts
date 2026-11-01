@@ -52,6 +52,7 @@ export interface McpTokenDoc {
   label: string;
   hash: string;
   createdAt: Date;
+  expiresAt?: Date;
 }
 
 export interface UserDoc {

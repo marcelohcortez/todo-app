@@ -20,6 +20,8 @@ import { PRIORITIES } from "./types";
 // The id that Settings uses for the single token saved before named tokens existed.
 export const LEGACY_TOKEN_ID = "legacy";
 
+const DEFAULT_TOKEN_EXPIRY_DAYS = 90;
+
 export function generateMcpToken(): string {
   return "tdk_" + randomBytes(32).toString("hex");
 }
@@ -28,13 +30,35 @@ export function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
+/** Returns the expiry date for an MCP token, defaulting to 90 days from now. */
+export function getMcpTokenExpiry(expiresInMs?: number): Date {
+  return new Date(Date.now() + (expiresInMs ?? DEFAULT_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000));
+}
+
+/** Check whether an MCP token has expired. */
+export function isTokenExpired(expiresAt: Date): boolean {
+  return new Date() > expiresAt;
+}
+
 // Accepts a token from the Settings page (Claude Code, Claude Desktop) or an OAuth access token (claude.ai).
 export async function userIdForMcpToken(token: string): Promise<string | null> {
   const hash = hashToken(token);
   const user = await (await usersCollection()).findOne({
     $or: [{ "mcpTokens.hash": hash }, { mcpTokenHash: hash }],
   });
-  if (user) return user._id.toHexString();
+  if (user) {
+    // Check if the token is still valid
+    const matchingToken = user.mcpTokens.find((t) => t.hash === hash);
+    if (matchingToken && isTokenExpired(matchingToken.expiresAt || new Date(Date.now() + 86400000))) {
+      // Token expired - remove it
+      await (await usersCollection()).updateOne(
+        { _id: user._id },
+        { $pull: { mcpTokens: { hash } } }
+      );
+      return null;
+    }
+    return user._id.toHexString();
+  }
   return userIdForAccessToken(token);
 }
 
