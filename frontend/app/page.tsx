@@ -1,7 +1,11 @@
-import TaskApp from "@/components/TaskApp";
+import dynamic from "next/dynamic";
 import { requireSignedIn } from "@/lib/session";
 
-// Checked on the server first, so a signed-out visitor is sent to /login without seeing the app.
+const TaskApp = dynamic(
+  () => import("@/components/TaskApp"),
+  { ssr: false },
+);
+
 export default async function Page() {
   await requireSignedIn();
   return <TaskApp view="active" />;
