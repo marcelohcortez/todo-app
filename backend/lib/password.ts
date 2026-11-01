@@ -1,5 +1,5 @@
 // The rules for a password. The server is the only place they are enforced; the form lists them for the user.
-const MIN_LENGTH = 9;
+const MIN_LENGTH = 12;
 const MAX_LENGTH = 200;
 
 function isDigit(code: number): boolean {
@@ -8,7 +8,7 @@ function isDigit(code: number): boolean {
 
 /** Returns the first rule the password breaks, or null when it is acceptable. */
 export function passwordProblem(password: string): string | null {
-  if (password.length < MIN_LENGTH) return "Password must be more than 8 characters";
+  if (password.length < MIN_LENGTH) return "Password must be at least 12 characters";
   if (password.length > MAX_LENGTH) return "Password must be 200 characters or fewer";
   if (!/[0-9]/.test(password)) return "Password needs at least one number";
   if (!/[^A-Za-z0-9]/.test(password)) return "Password needs at least one special character";
