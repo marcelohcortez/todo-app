@@ -7,7 +7,10 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 export const metadata: Metadata = {
   title: "Keeptrack",
   description: "Simple to-do list",
-  // The web app manifest is served from app/manifest.ts.
+  // Web app manifest is served from app/manifest.ts.
+  // Note: appleWebApp config removed — it generates the deprecated
+  // <meta name="apple-mobile-web-app-capable"> tag. mobile-web-app-capable
+  // below satisfies the modern equivalent.
   icons: {
     icon: [
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
@@ -15,7 +18,9 @@ export const metadata: Metadata = {
     ],
     apple: "/icons/apple-touch-icon.png",
   },
-  appleWebApp: { capable: true, title: "Keeptrack", statusBarStyle: "default" },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 };
 
 export const viewport: Viewport = {
