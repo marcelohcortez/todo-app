@@ -48,7 +48,7 @@ export async function userIdForMcpToken(token: string): Promise<string | null> {
   });
   if (user) {
     // Check if the token is still valid
-    const matchingToken = user.mcpTokens.find((t) => t.hash === hash);
+    const matchingToken = user.mcpTokens?.find((t) => t.hash === hash);
     if (matchingToken && isTokenExpired(matchingToken.expiresAt || new Date(Date.now() + 86400000))) {
       // Token expired - remove it
       await (await usersCollection()).updateOne(

@@ -2,7 +2,6 @@
 
 import { useRef } from "react";
 import MicButton from "./MicButton";
-import { cn } from "./ui/cn";
 import { textareaField } from "./ui/styles";
 
 const MAX_LENGTH = 20000;
