@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { validateEnv } from "@/lib/env";
-import { randomUUID } from "crypto";
 
 let envChecked = false;
 
@@ -17,7 +16,8 @@ export function middleware(request: NextRequest) {
   }
 
   const response = NextResponse.next();
-  const requestId = request.headers.get("x-request-id") ?? randomUUID();
+  // crypto.randomUUID() is the Edge-runtime-native Web Crypto API; Node's "crypto" module import is not supported here.
+  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
   response.headers.set("x-request-id", requestId);
   return response;
 }
